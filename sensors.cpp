@@ -65,7 +65,10 @@ double removeOutliersandGetMean(double* dataArr, uint16_t size) {
 const char* calcDP(double temperature, double humidity, double pressure, double altitude) {
     const double alpha = ((MAGNUS_A * temperature) / (MAGNUS_B + temperature)) + log(humidity / 100.0);
     const double dewPoint = (MAGNUS_B * alpha) / (MAGNUS_A - alpha);
-    return String(dewPoint - (altitude / 1000.0)).c_str();
+
+    char* dp = new char[20]; 
+    dtostrf(dewPoint - (altitude / 1000.0), 10, 10, dp);
+    return dp;
 }
 
 
@@ -339,6 +342,7 @@ Reading readAll(Sensors::Status *stat, Adafruit_SHT31 *sht, Adafruit_BMP3XX *bmp
 
     if (stat -> SHT) read(sht, ht);
     if (stat -> BMP) read(bmp, atp);
+    
     /*
     * Assign temperature. Ideally this is from the SHT.
     * In case the BMP is down, get from BMP.
@@ -353,11 +357,12 @@ Reading readAll(Sensors::Status *stat, Adafruit_SHT31 *sht, Adafruit_BMP3XX *bmp
         altitude !=UNDEFINED) {
             const char* dewpoint = calcDP(temperature, humidity, pressure, altitude);
             strcpy(reading.dewpoint, dewpoint);
-        }
+    }
 
-    if(temperature != UNDEFINED) strcpy(reading.temperature, String(temperature).c_str());
-    if(humidity != UNDEFINED) strcpy(reading.humidity, String(humidity).c_str());
-    if(pressure != UNDEFINED) strcpy(reading.pressure, String(pressure).c_str());
+    if(temperature != UNDEFINED) dtostrf(temperature, 10, 10, reading.temperature);
+    if(humidity != UNDEFINED) dtostrf(humidity, 10, 10, reading.humidity);
+    if(pressure != UNDEFINED) dtostrf(pressure, 10, 10, reading.pressure);
 
     return reading;
 }
+

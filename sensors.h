@@ -48,35 +48,31 @@ struct Sensors {
  * A singular timestamped reading taken by all the sensors using char arrays.
  */
 struct Reading : public Printable {
-    char timestamp[30] = "None";     // Fixed size for timestamp
-    char temperature[15] = "None";   // Fixed size for temperature
-    char humidity[15] = "None";      // Fixed size for humidity
-    char pressure[15] = "None";      // Fixed size for pressure
-    char altitude[15] = "None";      // Fixed size for altitude
-    char dewpoint[15] = "None";      // Fixed size for dewpoint
+    char timestamp[31] = "None";     // Fixed size for timestamp
+    char temperature[21] = "None";   // Fixed size for temperature
+    char humidity[21] = "None";      // Fixed size for humidity
+    char pressure[21] = "None";      // Fixed size for pressure
+    char altitude[21] = "None";      // Fixed size for altitude
+    char dewpoint[21] = "None";      // Fixed size for dewpoint
 
-    // Override the printTo method to make this struct printable
+    /** 
+     * Override the printTo method to make this struct printable
+     */
     size_t printTo(Print& p) const override {
         size_t n = 0;
-        n += p.print("Timestamp: ");
-        n += p.println(timestamp);
+        n += p.print(temperature);
+        n += p.print(" deg C | ");
+        n += p.print(humidity);
+        n += p.print(" % | ");
+        n += p.print(pressure);
+        n += p.print(" Pa | ");
+        n += p.print(altitude);
+        n += p.print(" m | ");
+        n += p.print(dewpoint);
+        n += p.print(" deg C | ");
 
-        n += p.print("Temperature: ");
-        n += p.println(temperature);
-
-        n += p.print("Humidity: ");
-        n += p.println(humidity);
-
-        n += p.print("Pressure: ");
-        n += p.println(pressure);
-
-        n += p.print("Altitude: ");
-        n += p.println(altitude);
-
-        n += p.print("Dewpoint: ");
-        n += p.println(dewpoint);
-
-        return n;  // Return the total number of bytes printed
+        // Return the total number of bytes printed
+        return n;
     }
 };
 
