@@ -23,6 +23,24 @@ void sdmmcInit(void){
 
 
 /**
+ * Initialize the log file. 
+ */
+void initLogFile(fs::FS &fs){
+  if(fs.exists(LOG_FILE)) {
+    debugln("Log file already exists");
+    return;
+  }
+
+  File file = fs.open(LOG_FILE, FILE_WRITE, true);
+  if(!file){
+    debugln("Failed to open log file for writing");
+    return;
+  }
+  if(file.print('{"readings":[]}')) debugln("Log file Initialised"); 
+  file.close();
+}
+
+/**
  * Read the conf file and return a String.
  */
 const char* readFile(fs::FS &fs, const char * path) {

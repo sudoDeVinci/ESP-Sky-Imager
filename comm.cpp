@@ -280,20 +280,33 @@ void sendStats(HTTPClient* https, NetworkInfo* network, Sensors::Status *stat, c
 void sendReadings(HTTPClient* https, NetworkInfo* network, Reading* readings) {
   debugln("\n[READING]");
 
-  size_t length = strlen("temperature") + strlen(readings -> temperature) + 
-                  strlen("&humidity") + strlen(readings -> humidity) +
-                  strlen("&pressure") + strlen(readings -> pressure) +
-                  strlen("&dewpoint=") + strlen(readings -> dewpoint) + 1;
+  // Temporary buffers to store the formatted values
+  char tempBuffer[20];
+  char humBuffer[20];
+  char presBuffer[20];
+  char dewBuffer[20];
+
+  // Format each double value into the temporary buffers with snprintf
+  snprintf(tempBuffer, sizeof(tempBuffer), "%.5f", readings->temperature);
+  snprintf(humBuffer, sizeof(humBuffer), "%.5f", readings->humidity);
+  snprintf(presBuffer, sizeof(presBuffer), "%.5f", readings->pressure);
+  snprintf(dewBuffer, sizeof(dewBuffer), "%.5f", readings->dewpoint);
+
+  // Calculate the total length by summing up the lengths of all strings
+  size_t length = strlen("temperature=") + strlen(tempBuffer) + 
+                  strlen("&humidity=") + strlen(humBuffer) +
+                  strlen("&pressure=") + strlen(presBuffer) +
+                  strlen("&dewpoint=") + strlen(dewBuffer) + 1;
   
   char values[length];
   strcpy(values, "temperature=");
-  strcat(values, readings -> temperature);
+  strcat(values, tempBuffer);
   strcat(values, "&humidity=");
-  strcat(values, readings -> humidity);
+  strcat(values, humBuffer);
   strcat(values, "&pressure=");
-  strcat(values, readings -> pressure);
+  strcat(values, presBuffer);
   strcat(values, "&dewpoint=");
-  strcat(values, readings -> dewpoint);
+  strcat(values, dewBuffer);
 
   size_t len = strlen(network -> HOST) + strlen(network -> routes.READING) + length + 2;
   char url[len];

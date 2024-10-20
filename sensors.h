@@ -44,37 +44,64 @@ struct Sensors {
     } status;
 };
 
-/**
- * A singular timestamped reading taken by all the sensors using char arrays.
- */
 struct Reading : public Printable {
-    char timestamp[31] = "None";     // Fixed size for timestamp
-    char temperature[21] = "None";   // Fixed size for temperature
-    char humidity[21] = "None";      // Fixed size for humidity
-    char pressure[21] = "None";      // Fixed size for pressure
-    char altitude[21] = "None";      // Fixed size for altitude
-    char dewpoint[21] = "None";      // Fixed size for dewpoint
+    const char* timestamp;        // Pre-formatted timestamp as a string (char*)
+    double temperature;           // Temperature in degrees Celsius
+    double humidity;              // Humidity as percentage
+    double pressure;              // Pressure in Pascals
+    double dewpoint;              // Dew point in degrees Celsius
 
-    /** 
+    // Constructor with default values for all fields
+    Reading(const char* ts = "None", double temp = 0.0, double hum = 0.0, double pres = 0.0, double dew = 0.0)
+        : timestamp(ts), temperature(temp), humidity(hum), pressure(pres), dewpoint(dew) {}
+
+    /**
+     * Helper function to format a double value to a string with 5 decimal places
+     */
+    const char* formatDouble(double value, const char* unit) const {
+        String result = String(value, 5);  // Format with 5 decimal places
+        result.concat(" ");
+        result.concat(unit);
+        return result.c_str();
+    }
+
+    /**
      * Override the printTo method to make this struct printable
      */
     size_t printTo(Print& p) const override {
         size_t n = 0;
-        n += p.print(temperature);
-        n += p.print(" deg C | ");
-        n += p.print(humidity);
-        n += p.print(" % | ");
-        n += p.print(pressure);
-        n += p.print(" Pa | ");
-        n += p.print(altitude);
-        n += p.print(" m | ");
-        n += p.print(dewpoint);
-        n += p.print(" deg C | ");
+
+        // Print timestamp
+        n += p.print("Timestamp: ");
+        n += p.print(timestamp);
+        n += p.print(" | ");
+        
+        // Print each sensor reading with the appropriate unit
+        n += p.print(formatDouble(temperature, "deg C"));
+        n += p.print(" | ");
+
+        n += p.print(formatDouble(humidity, "%"));
+        n += p.print(" | ");
+
+        n += p.print(formatDouble(pressure, "Pa"));
+        n += p.print(" | ");
+
+        n += p.print(formatDouble(dewpoint, "deg C"));
+        n += p.print(" | ");
 
         // Return the total number of bytes printed
         return n;
     }
 };
+
+/**
+ * Struct to hold a log of readings.
+ */
+struct ReadingLog{
+    size_t size;
+    Reading *readings;
+};
+
 
 extern double SEALEVELPRESSURE_HPA;
 extern unsigned long lastPressed;
