@@ -1,4 +1,4 @@
-#include "comm.h"
+#include "wrapper.h"
 
 #define FIRMWARE_VERSION "0.0.5.0"
 
@@ -11,10 +11,6 @@ Sensors sensors;
 NetworkInfo network;
 
 void setup() {
-    lastPressed = millis();
-    SEALEVELPRESSURE_HPA = 1017;
-    PROD = true;
-
     if (DEBUG == 1) { 
         Serial.begin(115200);
         debugln("Setting up...");
