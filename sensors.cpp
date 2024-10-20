@@ -1,4 +1,9 @@
 # include "sensors.h"
+
+bool PROD = false;
+double SEALEVELPRESSURE_HPA = UNDEFINED;
+unsigned long lastPressed = millis();
+
 /**
 This holds the various sensor functions that are used.
 -> SHT31-D Temperature and Humidity Sensor
@@ -110,7 +115,7 @@ bool initBMP(TwoWire *wire, Adafruit_BMP3XX *bmp) {
 /**
  * Initialize the SSD1306 display object.
  */
-bool initDisplay(Adafruit_SSD1306 *display) {
+bool initDISPLAY(Adafruit_SSD1306 *display) {
     if (!display -> begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
         debugln("Display allocation failed");
         return true; 
@@ -119,9 +124,7 @@ bool initDisplay(Adafruit_SSD1306 *display) {
     // resetDisplay(display);
     display -> setTextSize(1.8);
     debugln("Display Found!");
-    display -> println("Welcome to: ");
-    if (PROD) display -> println("Production");
-    else display -> println("Development");
+    display -> println("Welcome ");
     display -> display();
     return true;
 }

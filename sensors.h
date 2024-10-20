@@ -120,7 +120,7 @@ bool initBMP(TwoWire *wire, Adafruit_BMP3XX *bmp);
 /**
  * Initialize the SSD1306 display object.
  */
-bool initDisplay(Adafruit_SSD1306 *display);
+bool initDISPLAY(Adafruit_SSD1306 *display);
 
 /**
  * Set up the camera.

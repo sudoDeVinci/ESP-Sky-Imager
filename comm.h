@@ -129,7 +129,7 @@ void checkAndSleep(tm *timeinfo);
  * Attempt to match the SSID of nearby netwokrs with an SSID in the networkInfo file.
  * If a match is found, connect to the network and apply the SSL certificate.
  */
-bool wifiSetup(NetworkInfo* network, Sensors::Status *stat)
+bool wifiSetup(NetworkInfo* network, Sensors::Status *stat);
 
 /**
  * Check if the website is reachable before trying to communicate further.
