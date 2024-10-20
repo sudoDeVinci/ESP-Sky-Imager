@@ -103,4 +103,68 @@ struct NetworkInfo {
   } headers;
 };
 
+/**
+ * Set the internal clock of the ESP32 to the current time.
+ */
+void setClock();
+
+/**
+  * Get the current time and format the timestamp as MySQL DATETIME.
+  * timeinfo is an empty struct whihc is filled by calling getLocalTime().
+  * Big thanks to Andreas Spiess:
+  * https://github.com/SensorsIot/NTP-time-for-ESP8266-and-ESP32/blob/master/NTP_Example/NTP_Example.ino
+  *
+  *  If tm_year is not equal to 0xFF, it is assumed that valid time information has been received.
+  */
+char* getTime(tm *timeinfo, time_t *now, int timer);
+
+/**
+ * Check if the current time is between 5 PM and 6 AM.
+ * If so, enter deep sleep mode until 6 AM.
+ */
+void checkAndSleep(tm *timeinfo);
+
+/**
+ * Connect to wifi Network and apply SSL certificate.
+ * Attempt to match the SSID of nearby netwokrs with an SSID in the networkInfo file.
+ * If a match is found, connect to the network and apply the SSL certificate.
+ */
+bool wifiSetup(NetworkInfo* network, Sensors::Status *stat)
+
+/**
+ * Check if the website is reachable before trying to communicate further.
+ */
+bool websiteReachable(HTTPClient* https, NetworkInfo* network, const char* timestamp);
+
+/**
+ * Send statuses of sensors to HOST on specified PORT. 
+ */
+void sendStats(HTTPClient* https, NetworkInfo* network, Sensors::Status *stat, const char* timestamp);
+
+/**
+ * Send readings from weather sensors to HOST on specified PORT. 
+ */
+void sendReadings(HTTPClient* https, NetworkInfo* network, Reading* readings);
+
+/**
+ * Send image from weather station to server. 
+ */
+void sendImage(HTTPClient* https, NetworkInfo* network, uint8_t* buf, size_t len, const char* timestamp);
+
+/**
+ * Parse the QNH from the server response.
+ */
+double parseQNH(const char* json);
+
+/**
+ * Get the Sea Level Pressure from the server.
+*/
+double getQNH(NetworkInfo* network);
+
+/**
+ * Update the board firmware via the update server.
+ */
+void OTAUpdate(NetworkInfo* network, const String& firmware_version);
+
+
 #endif // COMM_H

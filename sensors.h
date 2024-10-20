@@ -107,4 +107,45 @@ extern double SEALEVELPRESSURE_HPA;
 extern unsigned long lastPressed;
 extern bool PROD;
 
+/**
+ * Initialize the sht31-D object.
+ */
+bool initSHT(Adafruit_SHT31 *sht);
+
+/**
+ * Initialize the bmp390 object.
+ */
+bool initBMP(TwoWire *wire, Adafruit_BMP3XX *bmp);
+
+/**
+ * Initialize the SSD1306 display object.
+ */
+bool initDisplay(Adafruit_SSD1306 *display);
+
+/**
+ * Set up the camera.
+ */
+bool initCAM();
+
+/**
+ * De-initialize the camera.
+ */
+esp_err_t cameraTeardown();
+
+/**
+ * Read all sensors and return a reading object untimestamped. 
+ */
+Reading readAll(Sensors::Status *stat, Adafruit_SHT31 *sht, Adafruit_BMP3XX *bmp);
+
+/**
+ * Append a reading object to the log file.
+ */
+void appendReading(fs::FS &fs, const Reading* reading);
+
+/**
+ * Read the log file and return an array of readings.
+ * WARNING: DYNAMICALLY ALLOCATED HEAP ARRAY.
+ */
+ReadingLog readLog(fs::FS &fs);
+
 #endif

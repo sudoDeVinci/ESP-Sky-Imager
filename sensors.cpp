@@ -76,14 +76,12 @@ double calcDP(double temperature, double humidity, double pressure, double altit
 /**
  * Initialize the sht31-D object.
  */
-bool initSHT(Sensors::Status *stat, Adafruit_SHT31 *sht) {
+bool initSHT(Adafruit_SHT31 *sht) {
     if (!sht -> begin()) {
-        stat -> SHT = false;
         debugln("Couldn't find SHT31.");
         return false;
     }
 
-    stat -> SHT = true;
     debugln("SHT31-D found and initialized");
     return true;
 }
@@ -91,14 +89,12 @@ bool initSHT(Sensors::Status *stat, Adafruit_SHT31 *sht) {
 /**
  * Initialize the bmp390 object.
  */
-bool initBMP(Sensors::Status *stat, TwoWire *wire, Adafruit_BMP3XX *bmp) {
+bool initBMP(TwoWire *wire, Adafruit_BMP3XX *bmp) {
     if (!bmp -> begin_I2C(0x77, wire)) {
-        stat -> BMP = false;
         debugln("Couldn't find BMP390.");
         return false;
     }
 
-    stat -> BMP = true;
     debugln('BMP390 found and initialized');
 
     /**
@@ -114,13 +110,12 @@ bool initBMP(Sensors::Status *stat, TwoWire *wire, Adafruit_BMP3XX *bmp) {
 /**
  * Initialize the SSD1306 display object.
  */
-bool initDisplay(Sensors::Status *stat, Adafruit_SSD1306 *display) {
+bool initDisplay(Adafruit_SSD1306 *display) {
     if (!display -> begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
         debugln("Display allocation failed");
         return true; 
     }
 
-    stat -> SCREEN = true;
     // resetDisplay(display);
     display -> setTextSize(1.8);
     debugln("Display Found!");
@@ -151,7 +146,7 @@ esp_err_t cameraTeardown() {
 /**
  * Set up the camera. 
  */
-bool cameraSetup(Sensors::Status *stat) {
+bool initCAM() {
 
     debugln("Setting up camera...");
 
@@ -199,7 +194,6 @@ bool cameraSetup(Sensors::Status *stat) {
     if (initErr != ESP_OK) {
         debugf("Camera init failed with error 0x%x", initErr);
         debugln();
-        stat -> CAM = false;
         return false;
     }
 
@@ -237,7 +231,6 @@ bool cameraSetup(Sensors::Status *stat) {
     fb = esp_camera_fb_get();
     if(!fb) {
         debugln("Camera capture failed");
-        stat -> CAM = false;
         esp_err_t deinitErr = cameraTeardown();
         if (deinitErr != ESP_OK) debugf("Camera de-init failed with error 0x%x", deinitErr);
         debugln();
@@ -247,7 +240,6 @@ bool cameraSetup(Sensors::Status *stat) {
 
     esp_camera_fb_return(fb);
     debugln("Camera configuration complete!");
-    stat -> CAM = true;
     return true;
 }
 

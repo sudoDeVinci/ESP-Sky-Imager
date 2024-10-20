@@ -348,7 +348,7 @@ double parseQNH(const char* json) {
 /**
  * Get the Sea Level Pressure from the server.
 */
-const char* getQNH(NetworkInfo* network) {
+double getQNH(NetworkInfo* network) {
   debugln("\n[GETTING SEA LEVEL PRESSURE]");
 
   HTTPClient https;
@@ -394,8 +394,7 @@ const char* getQNH(NetworkInfo* network) {
 
   const int httpCode = https.GET();
   const char* reply = getResponse(&https, httpCode);
-  debugln(reply);
-  return reply;
+  return parseQNH(reply);
 }
 
 /**
