@@ -347,7 +347,7 @@ double parseQNH(const char* json) {
 
 /**
  * Get the Sea Level Pressure from the server.
-*/
+ */
 double getQNH(NetworkInfo* network) {
   debugln("\n[GETTING SEA LEVEL PRESSURE]");
 
@@ -360,7 +360,12 @@ double getQNH(NetworkInfo* network) {
 
   const char* metarinfo = readFile(SD_MMC, "/conf.json");
   JsonDocument jsoninfo;
-  deserializeJson(jsoninfo, metarinfo);
+  DeserializationError error = deserializeJson(jsoninfo, metarinfo);
+  if (error) {
+    debug("Failed to read metarinfo file error :-> ");
+    debugln(error.f_str());
+    return UNDEFINED;
+  }
   const char* const key = jsoninfo["key"];
 
   size_t length = strlen("api_key=") + strlen(key) + 

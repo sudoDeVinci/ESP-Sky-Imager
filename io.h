@@ -25,6 +25,7 @@
 #define SD_MMC_D0   40 //Please do not modify it.
 
 #define LOG_FILE "/log.json"
+#define CACHE_FILE "/cache.json"
 
 
 /**
@@ -36,5 +37,27 @@ void sdmmcInit(void);
  * Read a file from the sdcard. 
  */
 const char* readFile(fs::FS &fs, const char * path);
+
+/**
+ * Initialize the log file. 
+ */
+void initLogFile (fs::FS &fs);
+
+/**
+ * Initialize the cache file. 
+ */
+void initCacheFile (fs::FS &fs);
+
+/**
+ * Read the conf file and return a String.
+ */
+const char* readFile (fs::FS &fs, const char * path);
+
+/**
+ * Update the timstamp cache file with a new timestamp.
+ */
+void updateCache (fs::FS &fs, const char* timestamp, const char* field, const char* subfield);
+
+
 
 #endif

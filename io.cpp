@@ -21,11 +21,10 @@ void sdmmcInit(void){
   debugf("Used space: %lluMB\r\n", SD_MMC.usedBytes() / (1024 * 1024));
 }
 
-
 /**
  * Initialize the log file. 
  */
-void initLogFile(fs::FS &fs){
+void initLogFile (fs::FS &fs) {
   if(fs.exists(LOG_FILE)) {
     debugln("Log file already exists");
     return;
@@ -36,14 +35,33 @@ void initLogFile(fs::FS &fs){
     debugln("Failed to open log file for writing");
     return;
   }
+
   if(file.print('{"readings":[]}')) debugln("Log file Initialised"); 
+  file.close();
+}
+
+/**
+ * Initialize the cache file. 
+ */
+void initCacheFile (fs::FS &fs) {
+  if(fs.exists(CACHE_FILE)) {
+    debugln("Cache file already exists");
+    return;
+  }
+
+  File file = fs.open(CACHE_FILE, FILE_WRITE, true);
+  if(!file){
+    debugln("Failed to open cache file for writing");
+    return;
+  }
+  if(file.print('{"NTP":"","SERVER":"","QNH":{"value":0, "timestamp":""}}')) debugln("Cache file Initialised"); 
   file.close();
 }
 
 /**
  * Read the conf file and return a String.
  */
-const char* readFile(fs::FS &fs, const char * path) {
+const char* readFile (fs::FS &fs, const char * path) {
   debugf("\nReading file: %s\r\n", path);
 
   String output = "";
@@ -62,4 +80,26 @@ const char* readFile(fs::FS &fs, const char * path) {
   debugln();
   file.close();
   return output.c_str();
+}
+
+/**
+ * Update the timstamp cache file with a new timestamp.
+ */
+void updateCache (fs::FS &fs, const char* timestamp, const char* field, const char* subfield = nullptr) {
+  const char* cache = readFile(fs, CACHE_FILE);
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, cache);
+  if (error) {
+    debugln("Failed to read cache file");
+    return;
+  }
+
+  if (subfield == nullptr) doc[field] = timestamp;
+  else doc[field][subfield] = timestamp;
+
+  File file = fs.open(CACHE_FILE, FILE_WRITE);
+  if(!file){
+    debugln("Failed to open cache file for writing");
+    return;
+  }
 }

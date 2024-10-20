@@ -10,54 +10,33 @@ Sensors sensors;
 // Struct of network information.
 NetworkInfo network;
 
-// BMP sensor object. 
-Adafruit_BMP3XX bmp;
-
-// SHT sensor object.
-Adafruit_SHT31 sht;
-
-// SSD1306 i2c OLED object.
-Adafruit_SSD1306 display;
-
 void setup() {
     lastPressed = millis();
     SEALEVELPRESSURE_HPA = 1017;
     PROD = true;
 
     if (DEBUG == 1) { 
-    Serial.begin(115200);
-    debugln();
-    debugln("Setting up...");
+        Serial.begin(115200);
+        debugln("Setting up...");
     }
 
+    // Initialize file system reuirements.
     sdmmcInit();
+    initLogFile(SD_MMC);
+    initCacheFile(SD_MMC);
     /**
      * wire.begin(sda, scl)
      * 32,33 for ESP32 "S1" WROVER
      * 41,42 for ESP32 S3
      */
-    sensors.wire = &wire;
+    sensors = Sensors(&wire);
     sensors.wire -> begin(41,42);
-
-    // Set up the display.
-    display = Adafruit_SSD1306(DISPLAY_WIDTH, DISPLAY_HEIGHT, sensors.wire, -1);
-    sensors.SCREEN = display;
-    initDISPLAY(&sensors.SCREEN);
-
-    // Set up the SHT31-D.
-    sht = Adafruit_SHT31(sensors.wire);
-    sensors.SHT = sht;
-    sensors.status.SHT = initSHT(&sensors.SHT);
-
-    // Set up the BMP380.
-    sensors.BMP = bmp;
-    sensors.status.BMP = initBMP(sensors.wire, &sensors.BMP);
-
-    // Set up the OV5640.
-    sensors.status.CAM = initCAM();
-    debugln();
 }
 
 void loop() {
-
+    debugln("Reading sensors...");
+    Reading reading = readAll(&sensors.status, &sensors.SHT, &sensors.BMP);
+    debugln("Reading complete!");
+    debugln(reading);
+    delay(1000);
 }
