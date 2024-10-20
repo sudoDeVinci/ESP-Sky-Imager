@@ -366,3 +366,19 @@ Reading readAll(Sensors::Status *stat, Adafruit_SHT31 *sht, Adafruit_BMP3XX *bmp
     return reading;
 }
 
+void appendReading(fs::FS &fs, Reading *reading) {
+    const char* file = readFile(SD_MMC, LOG_FILE);
+    JsonDocument doc;
+    deserializeJson(doc, file);
+    JsonArray readings = doc["readings"];
+    JsonObject newReading = readings.createNestedObject();
+    newReading["timestamp"] = reading -> timestamp;
+    newReading["temperature"] = reading -> temperature;
+    newReading["humidity"] = reading -> humidity;
+    newReading["pressure"] = reading -> pressure;
+    newReading["dewpoint"] = reading -> dewpoint;
+
+    File Serial = fs.open(LOG_FILE, FILE_WRITE, true);
+    serializeJson(doc, Serial);
+    Serial.close();
+}

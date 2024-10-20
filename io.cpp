@@ -2,7 +2,7 @@
 
 /**
  * Initialize the sdcard file system. 
-//  */
+ */
 void sdmmcInit(void){
   SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
   if (!SD_MMC.begin("/sdcard", true, true, SDMMC_FREQ_DEFAULT, 5)) {

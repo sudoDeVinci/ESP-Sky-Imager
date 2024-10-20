@@ -385,3 +385,54 @@ const char* getQNH(NetworkInfo* network) {
   return reply;
 }
 
+/**
+ * Send image from weather station to server. 
+ */
+void sendImage(HTTPClient* https, NetworkInfo* network, uint8_t* buf, size_t len, const char* timestamp) {
+  debugln("\n[IMAGE]");
+  size_t length = (strlen(network -> HOST) + strlen(network -> routes.IMAGE) + 2);
+  char url[length];
+  strcpy(url, network -> HOST);
+  strcat(url, network -> routes.IMAGE);
+  
+  https -> begin(url, network -> CERT);
+
+  debugln(url);
+
+  send(https, network, timestamp, buf, len);
+
+  https -> end();
+}
+
+/**
+ * Update the board firmware via the update server.
+ */
+void OTAUpdate(NetworkInfo* network, const String& firmware_version) {
+  debugln("\n[UPDATES]");
+
+  size_t length = strlen(network -> HOST) + strlen(network -> routes.UPDATE) + 1;
+  char url[length];
+  strcpy(url, network -> HOST);
+  strcat(url, network -> routes.UPDATE);
+  WiFiClient* client = network -> CLIENT;
+
+  // Start the OTA update process
+  debug("Grabbing updates from: ");
+  debugln(url);
+
+  // Connect to the update server
+  t_httpUpdate_return ret = httpUpdate.update(*client, url, firmware_version);
+  switch (ret) {
+    case HTTP_UPDATE_FAILED:
+      debugf("HTTP_UPDATE_FAILED Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+      break;
+
+    case HTTP_UPDATE_NO_UPDATES:
+      debugln("HTTP_UPDATE_NO_UPDATES");
+      break;
+
+    case HTTP_UPDATE_OK:
+      debugln("HTTP_UPDATE_OK");
+      break;
+  }
+}

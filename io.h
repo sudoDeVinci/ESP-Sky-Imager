@@ -24,7 +24,7 @@
 #define SD_MMC_CLK  39 //Please do not modify it. 
 #define SD_MMC_D0   40 //Please do not modify it.
 
-#define LOG_FILE "/readings.csv"
+#define LOG_FILE "/log.json"
 
 
 /**
