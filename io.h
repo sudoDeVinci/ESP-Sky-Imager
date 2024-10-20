@@ -7,7 +7,6 @@
 #include "FS.h"
 #include "SD_MMC.h"
 #include <ArduinoJson.h>
-#include <Printable.h>
 
 #define DEBUG 1
 
@@ -28,6 +27,14 @@
 #define LOG_FILE "/readings.csv"
 
 
+/**
+ * Initialize the sdcard file system. 
+ */
+void sdmmcInit(void);
 
+/**
+ * Read a file from the sdcard. 
+ */
+const char* readFile(fs::FS &fs, const char * path);
 
 #endif
