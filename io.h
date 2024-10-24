@@ -4,9 +4,10 @@
 
 #include <Arduino.h>
 #include <vector>
+#include <time.h>
+#include <ArduinoJson.h>
 #include "FS.h"
 #include "SD_MMC.h"
-#include <ArduinoJson.h>
 
 #define DEBUG 1
 
@@ -26,6 +27,7 @@
 
 #define LOG_FILE "/log.json"
 #define CACHE_FILE "/cache.json"
+#define NETWORK_FILE "/network.json"
 
 
 /**

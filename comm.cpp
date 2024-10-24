@@ -9,7 +9,7 @@
 /**
  * Set the internal clock via NTP server.
  */
-void setClock() {
+void setClock(tm *timeinfo) {
   configTime(0, 0, "pool.ntp.org");
 
   debug(F("Waiting for NTP time sync: "));
@@ -22,10 +22,9 @@ void setClock() {
   }
 
   debugln();
-  struct tm timeinfo;
-  gmtime_r(&nowSecs, &timeinfo);
+  gmtime_r(&nowSecs, timeinfo);
   debug(F("Current time: "));
-  debug(asctime(&timeinfo));
+  debug(asctime(timeinfo));
 }
 
 /**
@@ -35,29 +34,45 @@ void setClock() {
   * https://github.com/SensorsIot/NTP-time-for-ESP8266-and-ESP32/blob/master/NTP_Example/NTP_Example.ino
   *
   *  If tm_year is not equal to 0xFF, it is assumed that valid time information has been received.
+  * 
+  * @param timeinfo*: tm struct within global Network struct to store the time information.
+  * @param timer: time in seconds to wait for the time to be received.
+  * 
+  * @return char*: timestamp in MySQL DATETIME format.
   */
-char* getTime(tm *timeinfo, time_t *now, int timer) {
+void getTime(tm *timeinfo, int timer) {
   uint32_t start = millis();
+  time_t now;
   debug("Getting time!");
 
   do {
-    time(now);
-    localtime_r(now, timeinfo);
+    time(&now);
+    localtime_r(&now, timeinfo);
     debug(".");
     delay(random(150, 550));
   } while (((millis() - start) <= (1000 * timer)) && (timeinfo -> tm_year <= 1970));
   debugln("Done");
-  if (timeinfo -> tm_year == 1970) return "None";
-
-  char timestamp[30];
-  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(now));
-  return timestamp;
 }
 
+/**
+ * Format the timestamp as MySQL DATETIME.
+ * If the year is 1970, return "None".
+ * 
+ * @param timeinfo: tm struct within global Network struct to store the time information.
+ * @return char*: timestamp in MySQL DATETIME format.
+ */
+char* formattime(tm* now) {
+  if (now -> tm_year == 1970) return "None";
+  char timestamp[30];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", now);
+  return timestamp;
+}
 
 /**
  * Check if the current time is between 5 PM and 6 AM.
  * If so, enter deep sleep mode until 6 AM.
+ * 
+ * @param timeinfo*: tm struct within global Network struct to store the time information.
  */
 void checkAndSleep(tm *timeinfo) {
     int currentHour = timeinfo->tm_hour;
@@ -140,7 +155,7 @@ bool wifiSetup(NetworkInfo* network, Sensors::Status *stat) {
   WiFi.setSleep(false);
 
   // Read the networkinfo file and get the lisgt of network ssids and passwords.
-  const char* nwinfo = readFile(SD_MMC, "/networkInfo.json");
+  const char* nwinfo = readFile(SD_MMC, NETWORK_FILE);
   JsonDocument jsoninfo;
   deserializeJson(jsoninfo, nwinfo);
   const JsonArray networks = jsoninfo["networks"];
@@ -358,7 +373,7 @@ double getQNH(NetworkInfo* network) {
   const char* const locale = "en-US";
   const char* const airport = "ESMX";
 
-  const char* metarinfo = readFile(SD_MMC, "/conf.json");
+  const char* metarinfo = readFile(SD_MMC, NETWORK_FILE);
   JsonDocument jsoninfo;
   DeserializationError error = deserializeJson(jsoninfo, metarinfo);
   if (error) {
@@ -366,7 +381,7 @@ double getQNH(NetworkInfo* network) {
     debugln(error.f_str());
     return UNDEFINED;
   }
-  const char* const key = jsoninfo["key"];
+  const char* const key = jsoninfo["metar_api_key"];
 
   size_t length = strlen("api_key=") + strlen(key) + 
                   strlen("&v=") + strlen(version) +

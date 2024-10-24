@@ -180,7 +180,7 @@ void appendReading(fs::FS &fs, const Reading* reading) {
     
     // Check if the file content is valid
     if (fileContent == nullptr) {
-        Serial.println("Error: Failed to read the log file.");
+        debugln("Error: Failed to read the log file.");
         return;
     }
 
@@ -189,8 +189,8 @@ void appendReading(fs::FS &fs, const Reading* reading) {
     
     // If deserialization fails, start with an empty document
     if (error) {
-        Serial.print("Error deserializing JSON: ");
-        Serial.println(error.c_str());
+        debug("Error deserializing JSON: ");
+        debugln(error.c_str());
         doc.createNestedArray("readings");
     }
 
@@ -210,14 +210,12 @@ void appendReading(fs::FS &fs, const Reading* reading) {
     
     // Check if the file opened successfully
     if (!file) {
-        Serial.println("Error: Unable to open log file for writing.");
+        debugln("Error: Unable to open log file for writing.");
         return;
     }
 
     // Serialize the updated JSON document to the file
-    if (serializeJson(doc, file) == 0) {
-        Serial.println("Error: Failed to write to log file.");
-    }
+    if (serializeJson(doc, file) == 0) debugln("Error: Failed to write to log file.");
 
     // Close the file
     file.close();
@@ -241,8 +239,8 @@ ReadingLog readLog(fs::FS &fs) {
     DeserializationError error = deserializeJson(doc, fileContent);
     
     if (error) {
-        Serial.print("Error deserializing JSON: ");
-        Serial.println(error.c_str());
+        debug("Error deserializing JSON: ");
+        debugln(error.c_str());
         return {0, nullptr};
     }
 

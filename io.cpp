@@ -25,18 +25,17 @@ void sdmmcInit(void){
  * Initialize the log file. 
  */
 void initLogFile (fs::FS &fs) {
-  if(fs.exists(LOG_FILE)) {
-    debugln("Log file already exists");
-    return;
-  }
-
+  // Check if the log file exists, if not create it.
+  if(fs.exists(LOG_FILE)) return;
   File file = fs.open(LOG_FILE, FILE_WRITE, true);
   if(!file){
     debugln("Failed to open log file for writing");
     return;
   }
-
-  if(file.print('{"readings":[]}')) debugln("Log file Initialised"); 
+  JsonDocument doc;
+  doc.createNestedArray("readings");
+  if( serializeJson(doc, file) == 0) debugln("Failed to write to log file");
+  else debugln("Log file Initialised");
   file.close();
 }
 
@@ -44,17 +43,21 @@ void initLogFile (fs::FS &fs) {
  * Initialize the cache file. 
  */
 void initCacheFile (fs::FS &fs) {
-  if(fs.exists(CACHE_FILE)) {
-    debugln("Cache file already exists");
-    return;
-  }
-
+  // Check if the log file exists, if not create it.
+  if(fs.exists(CACHE_FILE)) return;
   File file = fs.open(CACHE_FILE, FILE_WRITE, true);
   if(!file){
-    debugln("Failed to open cache file for writing");
+    debugln("Failed to open log file for writing");
     return;
   }
-  if(file.print('{"NTP":"","SERVER":"","QNH":{"value":0, "timestamp":""}}')) debugln("Cache file Initialised"); 
+  JsonDocument doc;
+  doc["NTP"] = "";
+  doc["SERVER"] = "";
+  doc.createNestedObject("QNH");
+  doc["QNH"]["value"] = 0;
+  doc["QNH"]["timestamp"] = "";
+  if( serializeJson(doc, file) == 0) debugln("Failed to write to log file");
+  else debugln("Log file Initialised");
   file.close();
 }
 

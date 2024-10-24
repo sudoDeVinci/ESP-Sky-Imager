@@ -3,7 +3,6 @@
 
 #include "sensors.h"
 #include <WiFi.h>
-#include <time.h>
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
 #include <WiFiClientSecure.h>
@@ -68,7 +67,6 @@ struct NetworkInfo {
   IPAddress DNS;
   WiFiClientSecure *CLIENT;
   tm TIMEINFO;
-  time_t NOW;
 
  /**
   * MIME types for the different types of packets.
@@ -106,7 +104,16 @@ struct NetworkInfo {
 /**
  * Set the internal clock of the ESP32 to the current time.
  */
-void setClock();
+void setClock(tm *timeinfo);
+
+/**
+ * Format the timestamp as MySQL DATETIME.
+ * If the year is 1970, return "None".
+ * 
+ * @param timeinfo: tm struct within global Network struct to store the time information.
+ * @return char*: timestamp in MySQL DATETIME format.
+ */
+char* formattime(tm* timeinfo);
 
 /**
   * Get the current time and format the timestamp as MySQL DATETIME.
@@ -116,7 +123,7 @@ void setClock();
   *
   *  If tm_year is not equal to 0xFF, it is assumed that valid time information has been received.
   */
-char* getTime(tm *timeinfo, time_t *now, int timer);
+void getTime(tm *timeinfo, int timer);
 
 /**
  * Check if the current time is between 5 PM and 6 AM.
