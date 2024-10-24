@@ -58,8 +58,16 @@ const char* readFile (fs::FS &fs, const char * path);
 /**
  * Update the timstamp cache file with a new timestamp.
  */
+void updateCache (fs::FS &fs, const char* timestamp, const char* field);
+
+/**
+ * Update a numaerical cache field / subfield.
+ */
+void updateCache (fs::FS &fs, double value, const char* field, const char* subfield);
+
+/**
+ * Update a numaerical cache field / subfield.
+ */
 void updateCache (fs::FS &fs, const char* timestamp, const char* field, const char* subfield);
-
-
 
 #endif

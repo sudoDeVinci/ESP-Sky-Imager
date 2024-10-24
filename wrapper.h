@@ -9,9 +9,22 @@
  * 2. Get the current time for the system.
  * 
  * @param  fs: The file system reference to use for the cache.
- * @param  now: The time struct to fill with the current time.
+ * @param now: The time struct to fill with the current time.
+ * @param stat: The status struct to check if we have wifi connection.
  */
-void fetchCurrentTime(fs::FS &fs, tm *now, Sensors::Status *status);
+void fetchCurrentTime(fs::FS &fs, tm *now, Sensors::Status *stat);
+
+/**
+ * Get the QNH from the api if there is internet.
+ * 1. Check if we have internet.
+ * 2. If connection, get the QNH from the api., then update the cache.
+ * 3. If no connection, return the cached value.
+ * 
+ * @param fs: The file system reference to use for the cache.
+ * @param timestamp: The timestamp to update the cache with.
+ * @param network: The network struct to check if we have wifi connection.
+ */
+double fetchQNH(fs::FS &fs, const char* timestamp, NetworkInfo *network);
 
 
 #endif // COMM_H

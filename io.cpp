@@ -89,7 +89,51 @@ const char* readFile (fs::FS &fs, const char * path) {
 /**
  * Update the timstamp cache file with a new timestamp.
  */
-void updateCache (fs::FS &fs, const char* timestamp, const char* field, const char* subfield = nullptr) {
+void updateCache (fs::FS &fs, const char* timestamp, const char* field) {
+  const char* cache = readFile(fs, CACHE_FILE);
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, cache);
+  if (error) {
+    debugln("Failed to read cache file");
+    return;
+  }
+
+  doc[field] = timestamp;
+
+  File file = fs.open(CACHE_FILE, FILE_WRITE);
+  if(!file){
+    debugln("Failed to open cache file for writing");
+    return;
+  }
+}
+
+
+/**
+ * Update a numaerical cache field / subfield.
+ */
+void updateCache (fs::FS &fs, double value, const char* field, const char* subfield) {
+  const char* cache = readFile(fs, CACHE_FILE);
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, cache);
+  if (error) {
+    debugln("Failed to read cache file");
+    return;
+  }
+
+  if (subfield == nullptr) doc[field] = value;
+  else doc[field][subfield] = value;
+
+  File file = fs.open(CACHE_FILE, FILE_WRITE);
+  if(!file){
+    debugln("Failed to open cache file for writing");
+    return;
+  }
+}
+
+/**
+ * Update a numaerical cache field / subfield.
+ */
+void updateCache (fs::FS &fs, const char* timestamp, const char* field, const char* subfield) {
   const char* cache = readFile(fs, CACHE_FILE);
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, cache);
