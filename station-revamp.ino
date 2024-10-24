@@ -12,8 +12,8 @@ NetworkInfo network;
 
 void setup() {
     if (DEBUG == 1) { 
-        Serial.begin(115200);
-        debugln("Setting up...");
+      Serial.begin(115200);
+      debugln("Setting up...");
     }
 
     // Initialize file system reuirements.
@@ -27,12 +27,14 @@ void setup() {
      */
     sensors = Sensors(&wire);
     sensors.wire -> begin(41,42);
+    fetchCurrentTime(SD_MMC, &network.TIMEINFO, &sensors.status);
 }
 
 void loop() {
-    debugln("Reading sensors...");
-    Reading reading = readAll(&sensors.status, &sensors.SHT, &sensors.BMP);
-    debugln("Reading complete!");
-    debugln(reading);
-    delay(1000);
+    //debugln("Reading sensors...");
+    //Reading reading = readAll(&sensors.status, &sensors.SHT, &sensors.BMP);
+    //debugln("Reading complete!");
+    //debugln(reading);
+    debugln(formattime(&network.TIMEINFO));
+    delay(10000000000);
 }

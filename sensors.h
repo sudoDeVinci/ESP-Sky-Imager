@@ -50,9 +50,24 @@ struct Sensors {
         SCREEN = Adafruit_SSD1306();
         status.BMP = initBMP();
         status.SHT = initSHT();
+        //status.SCREEN = initDISPLAY();
         status.CAM = initCAM();
-        status.SCREEN = initDISPLAY();
     }
+
+    bool initDISPLAY() {
+      if (!SCREEN.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+        debugln("Display allocation failed");
+        return false;
+      } else {
+        SCREEN.setTextSize(2.0);
+        debugln("Display Found!");
+        SCREEN.println("Welcome!");
+        SCREEN.display();
+        return true; 
+      }
+
+    }
+
 
     bool initSHT() {
         if (!SHT.begin()) {
@@ -71,27 +86,6 @@ struct Sensors {
         }
 
         debugln("BMP3XX found and initialized");
-        return true;
-    }
-
-    bool initDISPLAY() {
-        if (!SCREEN.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-            debugln("SSD1306 allocation failed");
-            return false;
-        }
-
-        SCREEN.display();
-        delay(2000);
-        SCREEN.clearDisplay();
-        SCREEN.setTextSize(1);
-        SCREEN.setTextColor(SSD1306_WHITE);
-        SCREEN.setCursor(0,0);
-        SCREEN.println("Hello, world!");
-        SCREEN.display();
-        delay(2000);
-        SCREEN.clearDisplay();
-        SCREEN.display();
-        debugln("SSD1306 found and initialized");
         return true;
     }
 
@@ -162,6 +156,9 @@ struct Sensors {
         esp_err_t initErr = esp_camera_init(&config);
         if (initErr != ESP_OK) {
             debugf("Camera init failed with error 0x%x", initErr);
+            if (initErr == ESP_ERR_NOT_FOUND) debugln("Camera not found");
+            esp_err_t deinitErr = cameraTeardown();
+            if (deinitErr != ESP_OK) debugf("Camera de-init failed with error 0x%x", deinitErr);
             debugln();
             return false;
         }

@@ -11,7 +11,7 @@
  * @param  fs: The file system reference to use for the cache.
  * @param  now: The time struct to fill with the current time.
  */
-void fetchCurrentTime(fs::FS &fs, tm *now);
+void fetchCurrentTime(fs::FS &fs, tm *now, Sensors::Status *status);
 
 
 #endif // COMM_H

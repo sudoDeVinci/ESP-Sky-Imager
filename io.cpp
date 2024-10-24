@@ -50,12 +50,13 @@ void initCacheFile (fs::FS &fs) {
     debugln("Failed to open log file for writing");
     return;
   }
+  
   JsonDocument doc;
-  doc["NTP"] = "";
-  doc["SERVER"] = "";
+  doc["NTP"] = "None";
+  doc["SERVER"] = "None";
   doc.createNestedObject("QNH");
   doc["QNH"]["value"] = 0;
-  doc["QNH"]["timestamp"] = "";
+  doc["QNH"]["timestamp"] = "None";
   if( serializeJson(doc, file) == 0) debugln("Failed to write to log file");
   else debugln("Log file Initialised");
   file.close();
