@@ -74,4 +74,12 @@ void updateCache (fs::FS &fs, double value, const char* field);
  */
 void updateCache (fs::FS &fs, cacheUpdate* update, const char* field);
 
+/**
+ * Replace a substring with another substring in a char array.
+ * https://forum.arduino.cc/t/replace-and-remove-char-arrays/485806/5 
+ */
+void str_replace(char *src, char *oldchars, char *newchars);
+
+void writejpg(fs::FS &fs, const char* path, const uint8_t* data, size_t size);
+
 #endif

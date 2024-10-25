@@ -159,3 +159,36 @@ void updateCache (fs::FS &fs, cacheUpdate* update, const char* field) {
   else debugln("Cache file updated");
   file.close();
 }
+
+/**
+ * Replace a substring with another substring in a char array.
+ * https://forum.arduino.cc/t/replace-and-remove-char-arrays/485806/5 
+ */
+void str_replace(char *src, char *oldchars, char *newchars) { // utility string function
+  char *p = strstr(src, oldchars);
+  char buf[MAX_STRING_LENGTH];
+  do {
+    if (p) {
+      memset(buf, '\0', strlen(buf));
+      if (src == p) {
+        strcpy(buf, newchars);
+        strcat(buf, p + strlen(oldchars));
+      } else {
+        strncpy(buf, src, strlen(src) - strlen(p));
+        strcat(buf, newchars);
+        strcat(buf, p + strlen(oldchars));
+      }
+      memset(src, '\0', strlen(src));
+      strcpy(src, buf);
+    }
+  } while (p && (p = strstr(src, oldchars)));
+}
+
+void writejpg(fs::FS &fs, const char* path, const uint8_t* data, size_t size) {
+  File file = fs.open(path, FILE_WRITE);
+  if(!file){
+    debugln("Failed to open file in writing mode");
+    return;
+  }
+  if (file.write(data, size) != size) debugln("Failed to write to file");
+  else debugln("File written successfully");

@@ -118,3 +118,82 @@ void fetchCurrentTime(fs::FS &fs, tm *now, Sensors::Status *stat) {
 }
 
 
+
+void sendReadings(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) {
+  if (!sensors) {
+    debugln("Invalid parameters");
+    return;
+  }
+
+  // Get the QNH
+  double qnh = fetchQNH(fs, &now, network);
+
+  // Get the sensor readings
+  Reading reading = readAll(&sensors.status, &sensors -> SHT, &sensors -> BMP);
+  reading.timestamp = formattime(now);
+
+  // Send the readings to the server
+  if (!sensors -> status.WIFI) {
+    debugln("NO CONNECTION!  ->  Going to sleep!...");
+    return;
+  }
+
+  
+  {
+    // Attempting to scope the http client to keep it alive in relation to the wifi client.
+    HTTPClient http;
+
+    // Check if the site is reachable.
+    if (!websiteReachable(&https, network, reading.timestamp)) {
+      debugln("Website is not reachable, saving to log file");
+      appendReading(fs, &reading);
+
+      // Take image and save to sd card
+      if (sensors -> status.CAM) {
+        camera_fb_t * fb = nullptr;
+        debugln("Taking image...");
+        camera_fb_t * fb = nullptr;
+          for(int i = 0; i < 3; i++) {
+            fb = esp_camera_fb_get();
+            esp_camera_fb_return(fb);
+            delay(100);
+          }
+        fb = esp_camera_fb_get();
+
+        char* filepath = formattime(now);
+        str_replace(filepath, " ", "-");
+        str_replace(filepath, ":", "-");
+        String path = "/" + String(filepath) + ".jpg";
+        writejpg(fs, path.c_str(), fb -> buf, fb -> len);
+        esp_camera_fb_return(fb);
+        esp_err_t deinitErr = sensors -> cameraTeardown();
+        debugln("WEBSITE UNREACHABLE!  ->  Going to sleep!...");
+        delay(50);
+        deepSleepMins(SLEEP_MINS);
+      }
+    }
+
+    // send statuses to the server.
+    void sendStats(&http,network, &sensors -> status, reading.timestamp);
+    delay(20);
+
+    // send readings to the server.
+    void sendReadings(&http, network, &reading);
+    delay(20);
+
+    // send image to the server.
+    camera_fb_t * fb = nullptr;
+    debugln("Taking image...");
+    camera_fb_t * fb = nullptr;
+      for(int i = 0; i < 3; i++) {
+        fb = esp_camera_fb_get();
+        esp_camera_fb_return(fb);
+        delay(100);
+      }
+    fb = esp_camera_fb_get();
+    sendImage(&http, network, fb -> buf, fb -> len, reading.timestamp);
+    delay(20);
+    esp_camera_fb_return(fb);
+    esp_err_t deinitErr = sensors -> cameraTeardown();
+  }
+}  

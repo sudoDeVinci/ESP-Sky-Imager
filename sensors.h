@@ -208,21 +208,6 @@ struct Sensors {
         debugln("Camera configuration complete!");
         return true;
     }
-
-    /**
-     * Read and return the camera image.
-     */
-    camera_fb_t* readCamera() {
-        camera_fb_t * fb = nullptr;
-        for(int i = 0; i < 3; i++) {
-            fb = esp_camera_fb_get();
-            esp_camera_fb_return(fb);
-            delay(100);
-        }
-        fb = esp_camera_fb_get();
-        return fb;
-    }
-
 };
 
 struct Reading : public Printable {
@@ -321,7 +306,7 @@ Reading readAll(Sensors::Status *stat, Adafruit_SHT31 *sht, Adafruit_BMP3XX *bmp
 /**
  * Append a reading object to the log file.
  */
-void appendReading(fs::FS &fs, const Reading* reading);
+void appendReading(fs::FS &fs, Reading* reading);
 
 /**
  * Read the log file and return an array of readings.

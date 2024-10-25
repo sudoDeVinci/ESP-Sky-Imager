@@ -174,9 +174,9 @@ Reading readAll(Sensors::Status *stat, Adafruit_SHT31 *sht, Adafruit_BMP3XX *bmp
 /**
  * Append a reading object to the log file.
  */
-void appendReading(fs::FS &fs, const Reading* reading) {
+void appendReading(fs::FS &fs, Reading* reading) {
     // Read the existing content of the log file
-    const char* fileContent = readFile(SD_MMC, LOG_FILE);
+    const char* fileContent = readFile(fs, LOG_FILE);
     
     // Check if the file content is valid
     if (fileContent == nullptr) {
