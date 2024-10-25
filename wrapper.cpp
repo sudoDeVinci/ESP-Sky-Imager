@@ -1,98 +1,120 @@
 #include "wrapper.h"
 
+
+
 /**
- * Try to get the current time.
- * 1. Check the cache for the last time we queried NTP server. - if it is over 6 hours, query the server.
- * 1.2. Query the NTP server - Update cache if succesfful.
- * 2. Get the current time for the system.
+ * Get the QNH from the api if there is internet.
+ * 1. read the cache for the last time we queried the api.
+ * 2. If the cache is older than 2 hours, query the api.
+ * 3. If connection, get the QNH from the api, then update the cache.
+ * 4. If no connection, return the cached value.
+ * 
+ * @param fs: The file system reference to use for the cache.
+ * @param timestamp: The timestamp to update the cache with.
+ * @param network: The network struct to check if we have wifi connection.
+ */
+double fetchQNH(fs::FS &fs, tm* now, NetworkInfo *network) {
+  double qnh = UNDEFINED;
+
+  // Read the last synced time from the cache.
+  const char *cache = readFile(fs, CACHE_FILE);
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, cache);
+  if (!error) {
+    debugln("Failed to read cache file");
+
+    const char* qnhTS = doc["QNH"]["timestamp"];
+    qnh = doc["QNH"]["value"];
+    debug("Cached QNH timestamp is: ");
+    debugln(qnhTS);
+
+    // If timestamp is not "None", try to parse and check age
+    if (strcmp(qnhTS, "None") != 0) {
+      struct tm cacheTime = {0};
+      if (strptime(qnhTS, "%Y-%m-%d %H:%M:%S", &cacheTime)) {
+        constexpr int CACHE_TIMEOUT_SECONDS = 7200;  // 2 hours
+        double timeDiff = difftime(mktime(now), mktime(&cacheTime));
+        // cache is still valid - return
+        if (timeDiff <= CACHE_TIMEOUT_SECONDS) return qnh;
+        debugln("Cache is older than 2 hours, updating QNH...");
+      }
+    // If timestamp is "None", update the cache.
+    } else debugln("Cache is empty, updating time...");
+  }
+  // Update time if we have WiFi
+  if (WiFi.status() != WL_CONNECTED) {
+    debugln("No wifi connection, cannot update time.");
+    return qnh;
+  }
+
+  //Get the latest QNH from the API
+  qnh = getQNH(network);
+
+  // Update the cache with the new time.
+  cacheUpdate update = {qnh, formattime(now)};
+  updateCache(fs, &update, "QNH");
+
+  return qnh;
+}
+
+
+/**
+ * Try to get the current time from the NTP server.
+ * 1. Read the current system time.
+ * 2. Check the cache for the last time we queried NTP server. - if it is over 6 hours, query the server.
+ * 3. Query the NTP server - Update cache if succesfful.
  * 
  * @param  fs: The file system reference to use for the cache.
  * @param now: The time struct to fill with the current time.
  * @param stat: The status struct to check if we have wifi connection.
  */
 void fetchCurrentTime(fs::FS &fs, tm *now, Sensors::Status *stat) {
-  // Get the current time.
-  getTime(now, 5);
+  if (!now || !stat) {
+    debugln("Invalid parameters");
+    return;
+  }
 
-  // Read the last synced time from the cache.
-  const char *cache = readFile(fs, CACHE_FILE);
+  // Get the current time according to the system.
+  getTime(now, 10);
+
+  // Read the cache file.
+  const char* cache = readFile(fs, CACHE_FILE);
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, cache);
   if (error) {
-    debugln("Failed to read cache file");
+    debugln("Failed to parse cache JSON");
     return;
-  } else debugln("Cache read successfully");
+  }
+  debugln("Cache read successfully");
 
-  const char *timestamp = doc["NTP"];
+  // Specifically read the last time we queried the NTP server.
+  const char* timestamp = doc["NTP"];
   debug("Cached time is: ");
   debugln(timestamp);
 
-  if (strcmp(timestamp, "None") == 0) {
-    // Parse the timestamp from the cache.
+  // If timestamp is not "None", try to parse and check age
+  if (strcmp(timestamp, "None") != 0) {
     struct tm cacheTime = {0};
-    strptime(timestamp, "%Y-%m-%d %H:%M:%S", &cacheTime);
-
-    // Check if the cache is older than 6 hours.
-    // Timestamps are in the format of "%Y-%m-%d %H:%M:%S"
-    double seconds = difftime(mktime(now), mktime(&cacheTime));
-    if (seconds > 21600) {
-      // Cache is older than 6 hours, set clock and get  right time.
+    if (strptime(timestamp, "%Y-%m-%d %H:%M:%S", &cacheTime)) {
+      constexpr int CACHE_TIMEOUT_SECONDS = 21600;  // 6 hours
+      double timeDiff = difftime(mktime(now), mktime(&cacheTime));
+      // cache is still valid - return
+      if (timeDiff <= CACHE_TIMEOUT_SECONDS) return;
       debugln("Cache is older than 6 hours, updating time...");
-      if (!stat->WIFI) {
-        debugln("No wifi connection, cannot update time.");
-        return;
-      }
-      setClock(now);
-      updateCache(fs, formattime(now), "NTP");
     }
-  } else {
-    // Cache is empty, set clock and get right time.
-    debugln("Cache is empty, updating time...");
-    if (!stat->WIFI) {
-      debugln("No wifi connection, cannot update time.");
-      return;
-    }
-    setClock(now);
-    updateCache(fs, formattime(now), "NTP");
-  }
-}
+  // If timestamp is "None", update the cache.
+  } else debugln("Cache is empty, updating time...");
 
-
-/**
- * Get the QNH from the api if there is internet.
- * 1. Check if we have internet.
- * 2. If connection, get the QNH from the api., then update the cache.
- * 3. If no connection, return the cached value.
- * 
- * @param fs: The file system reference to use for the cache.
- * @param timestamp: The timestamp to update the cache with.
- * @param network: The network struct to check if we have wifi connection.
- */
-double fetchQNH(fs::FS &fs, const char* timestamp, NetworkInfo *network) {
-  double qnh = UNDEFINED;
-
-  // Check if we have internet.
-  if (WiFi.status() == WL_CONNECTED) {
-    // Get the QNH from the server.
-    double qnh = getQNH(network);
-    if (qnh != UNDEFINED) {
-      // Update the cache with the new QNH.
-      updateCache(fs, qnh, "QNH", "value");
-      updateCache(fs, timestamp, "QNH", "timestamp");
-    }
+  // Update time if we have WiFi
+  if (!stat->WIFI) {
+    debugln("No wifi connection, cannot update time.");
+    return;
   }
 
-  // Read the QNH from the cache.
-  const char *cache = readFile(SD_MMC, CACHE_FILE);
-  JsonDocument doc;
-  DeserializationError error = deserializeJson(doc, cache);
-  if (error || strcmp(doc["QNH"]["timestamp"], "None") == 0) {
-    debugln("Failed to read QNH from cache");
-    return qnh;
-  } else debugln("Cached QNH read as : ");
-  
-  qnh = doc["QNH"]["value"];
-  debugln(qnh);
-  return qnh; 
+  // Get the current time from the NTP server.
+  setClock(now);
+  // Update the cache with the new time.
+  updateCache(fs, formattime(now), "NTP");
 }
+
 

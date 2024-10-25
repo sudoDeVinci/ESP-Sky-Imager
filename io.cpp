@@ -105,13 +105,16 @@ void updateCache (fs::FS &fs, const char* timestamp, const char* field) {
     debugln("Failed to open cache file for writing");
     return;
   }
+  if( serializeJson(doc, file) == 0) debugln("Failed to update cache file");
+  else debugln("Cache file updated");
+  file.close();
 }
 
 
 /**
  * Update a numaerical cache field / subfield.
  */
-void updateCache (fs::FS &fs, double value, const char* field, const char* subfield) {
+void updateCache (fs::FS &fs, double value, const char* field) {
   const char* cache = readFile(fs, CACHE_FILE);
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, cache);
@@ -120,20 +123,22 @@ void updateCache (fs::FS &fs, double value, const char* field, const char* subfi
     return;
   }
 
-  if (subfield == nullptr) doc[field] = value;
-  else doc[field][subfield] = value;
+  doc[field] = value;
 
   File file = fs.open(CACHE_FILE, FILE_WRITE);
   if(!file){
     debugln("Failed to open cache file for writing");
     return;
   }
+  if( serializeJson(doc, file) == 0) debugln("Failed to update cache file");
+  else debugln("Cache file updated");
+  file.close();
 }
 
 /**
  * Update a numaerical cache field / subfield.
  */
-void updateCache (fs::FS &fs, const char* timestamp, const char* field, const char* subfield) {
+void updateCache (fs::FS &fs, cacheUpdate* update, const char* field) {
   const char* cache = readFile(fs, CACHE_FILE);
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, cache);
@@ -142,12 +147,15 @@ void updateCache (fs::FS &fs, const char* timestamp, const char* field, const ch
     return;
   }
 
-  if (subfield == nullptr) doc[field] = timestamp;
-  else doc[field][subfield] = timestamp;
+  doc[field]["value"] = update->value;
+  doc[field]["timestamp"] = update->timestamp;
 
   File file = fs.open(CACHE_FILE, FILE_WRITE);
   if(!file){
     debugln("Failed to open cache file for writing");
     return;
   }
+  if( serializeJson(doc, file) == 0) debugln("Failed to update cache file");
+  else debugln("Cache file updated");
+  file.close();
 }

@@ -29,6 +29,10 @@
 #define CACHE_FILE "/cache.json"
 #define NETWORK_FILE "/network.json"
 
+struct cacheUpdate {
+  const double value;
+  const char* timestamp;
+};
 
 /**
  * Initialize the sdcard file system. 
@@ -63,11 +67,11 @@ void updateCache (fs::FS &fs, const char* timestamp, const char* field);
 /**
  * Update a numaerical cache field / subfield.
  */
-void updateCache (fs::FS &fs, double value, const char* field, const char* subfield);
+void updateCache (fs::FS &fs, double value, const char* field);
 
 /**
  * Update a numaerical cache field / subfield.
  */
-void updateCache (fs::FS &fs, const char* timestamp, const char* field, const char* subfield);
+void updateCache (fs::FS &fs, cacheUpdate* update, const char* field);
 
 #endif
