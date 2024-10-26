@@ -4,13 +4,6 @@ bool PROD = false;
 double SEALEVELPRESSURE_HPA = UNDEFINED;
 unsigned long lastPressed = millis();
 
-/**
-This holds the various sensor functions that are used.
--> SHT31-D Temperature and Humidity Sensor
--> BMP390 Temperature and Pressure Sensor
--> SSD 1306 DISPLAY
- */
-
 
 /**
  * MATH RELATED FUNCTIONS
@@ -74,116 +67,10 @@ double calcDP(double temperature, double humidity, double pressure, double altit
 }
 
 
-/**
- * SENSOR READING FUNCTIONS
- */
 
 /**
- * read the temperature and humidity from the SHT31-D sensor.
+ * SENSOR FILEIO FUNCTIONS
  */
-void read(Adafruit_SHT31 *sht, double *out) {
-    double h[SAMPLES];
-    double t[SAMPLES];
-    uint8_t errors = 0;
-    uint8_t valid = 0;
-
-    while (valid < SAMPLES && errors < 5) {
-        h[valid] = sht -> readHumidity();
-        t[valid] = sht -> readTemperature();
-        if (isnan(h[valid]) || isnan(t[valid])) {
-            errors++;
-            continue;
-        }
-        else valid++;
-        delay(50);
-    }
-
-    if( errors < 5 ) { 
-        out[0] = removeOutliersandGetMean(h, valid);
-        out[1] = removeOutliersandGetMean(t, valid);
-    }
-}
-
-/**
- * Read the temperature and pressure from the BMP390 sensor.
- */
-void read(Adafruit_BMP3XX *bmp, double *out) {
-    
-    if (! bmp -> performReading()) return;
-
-    double presses[SAMPLES];
-    double altids[SAMPLES];
-    double tempers[SAMPLES];
-    uint8_t errors = 0;
-    uint8_t valid = 0;
-
-    while ( valid < SAMPLES && errors < 5 ) {
-        presses[valid] = bmp -> readPressure();
-        altids[valid] = bmp -> readAltitude(SEALEVELPRESSURE_HPA);
-        tempers[valid] = bmp -> readTemperature();
-        if (isnan(presses[valid]) || isnan(altids[valid]) || isnan(tempers[valid])) {
-            errors++;
-            continue;
-        }
-        else valid++;
-        delay(50);
-    }
-
-    if (errors < 5) {
-        out[0] = removeOutliersandGetMean(altids, valid);
-        out[1] = removeOutliersandGetMean(tempers, valid);
-        out[2] = removeOutliersandGetMean(presses, valid);
-    }
-}
-
-/**
- * Read the image from the camera.
- */
-void read(camera_fb_t* fb) {
-    debugln("Taking image...");
-    for(int i = 0; i < 3; i++) {
-        fb = esp_camera_fb_get();
-        esp_camera_fb_return(fb);
-        delay(100);
-    }
-    fb = esp_camera_fb_get();
-    delay(20);
-}
-
-/**
- * Read all sensors and return a reading object untimestamped. 
- */
-Reading readAll(Sensors::Status *stat, Adafruit_SHT31 *sht, Adafruit_BMP3XX *bmp) {
-    Reading reading;
-    double* ht = new double[2]{UNDEFINED, UNDEFINED};
-    double* atp = new double[3]{UNDEFINED, UNDEFINED, UNDEFINED};
-    double temperature, humidity, pressure, altitude, dewpoint;
-
-    if (stat -> SHT) read(sht, ht);
-    if (stat -> BMP) read(bmp, atp);
-    
-    /*
-    * Assign temperature. Ideally this is from the SHT.
-    * In case the BMP is down, get from BMP.
-    */
-    if (stat -> SHT && ht[1] != UNDEFINED) temperature = ht[1];
-    else if (stat -> BMP && atp[1] != UNDEFINED) temperature = atp[1];
-    else temperature = UNDEFINED;
-
-    if (temperature != UNDEFINED &&
-        humidity !=UNDEFINED &&
-        pressure !=UNDEFINED && 
-        altitude !=UNDEFINED) {
-            double dewpoint = calcDP(temperature, humidity, pressure, altitude);
-            reading.dewpoint = dewpoint;
-    }
-
-    if(temperature != UNDEFINED) reading.temperature = temperature;
-    if(humidity != UNDEFINED) reading.humidity = humidity;
-    if(pressure != UNDEFINED) reading.pressure = pressure;
-
-    return reading;
-}
 
 /**
  * Append a reading object to the log file.

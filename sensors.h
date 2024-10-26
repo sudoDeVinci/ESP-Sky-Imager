@@ -25,13 +25,69 @@
 
 
 /**
+ * A singular timestamped reading from the sensors.
+ */
+struct Reading : public Printable {
+    const char* timestamp;        // Pre-formatted timestamp as a string (char*)
+    double temperature;           // Temperature in degrees Celsius
+    double humidity;              // Humidity as percentage
+    double pressure;              // Pressure in Pascals
+    double dewpoint;              // Dew point in degrees Celsius
+    double altitude;              // Altitude in meters
+
+    // Constructor with default values for all fields
+    Reading(const char* ts = "None", 
+            double temp = UNDEFINED, 
+            double hum = UNDEFINED, 
+            double pres = UNDEFINED, 
+            double dew = UNDEFINED,
+            double alt = UNDEFINED)
+        : timestamp(ts), temperature(temp), humidity(hum), pressure(pres), dewpoint(dew), altitude(alt) {}
+
+    /**
+     * Helper function to format a double value to a string with 5 decimal places
+     */
+    const char* formatDouble(double value, const char* unit) const {
+        String result = String(value, 5);  // Format with 5 decimal places
+        result.concat(" ");
+        result.concat(unit);
+        return result.c_str();
+    }
+
+    /**
+     * Override the printTo method to make this struct printable
+     */
+    size_t printTo(Print& p) const override {
+        size_t n = 0;
+
+        // Print timestamp
+        n += p.print("Timestamp: ");
+        n += p.print(timestamp);
+        n += p.print(" | ");
+        
+        // Print each sensor reading with the appropriate unit
+        n += p.print(formatDouble(temperature, "deg C"));
+        n += p.print(" | ");
+
+        n += p.print(formatDouble(humidity, "%"));
+        n += p.print(" | ");
+
+        n += p.print(formatDouble(pressure, "Pa"));
+        n += p.print(" | ");
+
+        n += p.print(formatDouble(dewpoint, "deg C"));
+        n += p.print(" | ");
+
+        // Return the total number of bytes printed
+        return n;
+    }
+};
+
+
+/**
  * Struct to hold sensor details and functionality.
  */
 struct Sensors {
-    TwoWire *wire;
-    Adafruit_BMP3XX BMP;
-    Adafruit_SHT31 SHT;
-    Adafruit_SSD1306 SCREEN;
 
     struct Status {
         bool CAM = false;
@@ -41,6 +97,13 @@ struct Sensors {
         bool SCREEN = false;
     } status;
 
+    TwoWire *wire;
+    camera_fb_t *frame;
+    camera_config_t config;
+    Adafruit_BMP3XX BMP;
+    Adafruit_SHT31 SHT;
+    Adafruit_SSD1306 SCREEN;
+
     Sensors(){}
 
     Sensors(TwoWire *w) : wire(w) {
@@ -49,24 +112,12 @@ struct Sensors {
         SCREEN = Adafruit_SSD1306();
         status.BMP = initBMP();
         status.SHT = initSHT();
-        //status.SCREEN = initDISPLAY();
         status.CAM = initCAM();
     }
 
-    bool initDISPLAY() {
-      if (!SCREEN.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-        debugln("Display allocation failed");
-        return false;
-      } else {
-        SCREEN.setTextSize(2.0);
-        debugln("Display Found!");
-        SCREEN.println("Welcome!");
-        SCREEN.display();
-        return true; 
-      }
-
+    bool all_down() {
+        return !status.CAM && !status.SHT && !status.BMP && !status.SCREEN;
     }
-
 
     bool initSHT() {
         if (!SHT.begin()) {
@@ -88,9 +139,6 @@ struct Sensors {
         return true;
     }
 
-    /**
-     * De-initialize the camera.
-     */
     esp_err_t cameraTeardown() {
         esp_err_t err = ESP_OK;
 
@@ -105,14 +153,8 @@ struct Sensors {
         return err;
     }
 
-    /**
-     * Set up the camera. 
-     */
     bool initCAM() {
-
         debugln("Setting up camera...");
-
-        camera_config_t config;
         config.ledc_channel = LEDC_CHANNEL_0;
         config.ledc_timer = LEDC_TIMER_0;
         config.pin_d0 = Y2_GPIO_NUM;
@@ -192,70 +234,106 @@ struct Sensors {
         * Attempt to capture an image with the given settings.
         * If no capture, set camera status to false and de-init camera.
         */
-        camera_fb_t *fb = NULL;
-        fb = esp_camera_fb_get();
-        if(!fb) {
+        frame = esp_camera_fb_get();
+        if(!frame) {
             debugln("Camera capture failed");
             esp_err_t deinitErr = cameraTeardown();
             if (deinitErr != ESP_OK) debugf("Camera de-init failed with error 0x%x", deinitErr);
             debugln();
-            esp_camera_fb_return(fb);
+            esp_camera_fb_return(frame);
             return false;
         }
 
-        esp_camera_fb_return(fb);
+        esp_camera_fb_return(frame);
         debugln("Camera configuration complete!");
         return true;
     }
-};
 
-struct Reading : public Printable {
-    const char* timestamp;        // Pre-formatted timestamp as a string (char*)
-    double temperature;           // Temperature in degrees Celsius
-    double humidity;              // Humidity as percentage
-    double pressure;              // Pressure in Pascals
-    double dewpoint;              // Dew point in degrees Celsius
+    camera_fb_t* read_cam() {
+        debugln("Taking image...");
+        for(int i = 0; i < 3; i++) {
+            frame = esp_camera_fb_get();
+            delay(20);
+            esp_camera_fb_return(fb);
+            delay(20);
+        }
+        frame = esp_camera_fb_get();
+        delay(20);
 
-    // Constructor with default values for all fields
-    Reading(const char* ts = "None", double temp = 0.0, double hum = 0.0, double pres = 0.0, double dew = 0.0)
-        : timestamp(ts), temperature(temp), humidity(hum), pressure(pres), dewpoint(dew) {}
+        if (!frame) {
+            debugln("Camera capture failed");
+            return nullptr;
+        }
 
-    /**
-     * Helper function to format a double value to a string with 5 decimal places
-     */
-    const char* formatDouble(double value, const char* unit) const {
-        String result = String(value, 5);  // Format with 5 decimal places
-        result.concat(" ");
-        result.concat(unit);
-        return result.c_str();
+        debugln("Image captured!");
+        return frame;
     }
 
-    /**
-     * Override the printTo method to make this struct printable
-     */
-    size_t printTo(Print& p) const override {
-        size_t n = 0;
+    void read_bmp(Reading *reading, double QNH) {
+        if (BMP.performReading()) return;
 
-        // Print timestamp
-        n += p.print("Timestamp: ");
-        n += p.print(timestamp);
-        n += p.print(" | ");
-        
-        // Print each sensor reading with the appropriate unit
-        n += p.print(formatDouble(temperature, "deg C"));
-        n += p.print(" | ");
+        double presses[SAMPLES];
+        double altids[SAMPLES];
+        double tempers_bmp[SAMPLES];
+        uint8_t errors = 0;
+        uint8_t valid = 0;
 
-        n += p.print(formatDouble(humidity, "%"));
-        n += p.print(" | ");
+        while ( valid < SAMPLES && errors < 5 ) {
+            presses[valid] = BMP.readPressure();
+            altids[valid] = BMP.readAltitude(QNH);
+            tempers_bmp[valid] = BMP.readTemperature();
+            if (isnan(presses[valid]) || isnan(altids[valid]) || isnan(tempers_bmp[valid])) {
+                errors++;
+                continue;
+            }
+            else valid++;
+            delay(50);
+        }
 
-        n += p.print(formatDouble(pressure, "Pa"));
-        n += p.print(" | ");
+        if (errors < 5) {
+            reading -> altitude = removeOutliersandGetMean(altids, valid);
+            reading -> temperature = removeOutliersandGetMean(tempers_bmp, valid);
+            reading -> pressure = removeOutliersandGetMean(presses, valid);
+        }
+    }
 
-        n += p.print(formatDouble(dewpoint, "deg C"));
-        n += p.print(" | ");
+    void read_sht(Reading *reading) {
+        double h[SAMPLES];
+        double t[SAMPLES];
+        uint8_t errors = 0;
+        uint8_t valid = 0;
 
-        // Return the total number of bytes printed
-        return n;
+        while (valid < SAMPLES && errors < 5) {
+            h[valid] = sht -> readHumidity();
+            t[valid] = sht -> readTemperature();
+            if (isnan(h[valid]) || isnan(t[valid])) {
+                errors++;
+                continue;
+            }
+            else valid++;
+            delay(50);
+        }
+
+        if( errors < 5 ) { 
+            reading -> humidity = removeOutliersandGetMean(h, valid);
+            reading -> temperature = removeOutliersandGetMean(t, valid);
+        }
+    }
+
+    void read(Reading *reading, double QNH) {
+        if (status.BMP) read_bmp(reading, QNH);
+        if (status.SHT) read_sht(reading);
+
+        if (reading -> temperature != UNDEFINED &&
+            reading -> humidity != UNDEFINED &&
+            reading -> pressure != UNDEFINED &&
+            reading -> altitude != UNDEFINED
+            ) {
+                reading -> dewpoint = calcDP(reading -> temperature, 
+                                             reading -> humidity, 
+                                             reading -> pressure, 
+                                             reading -> altitude);
+        }
     }
 };
 
@@ -272,15 +350,6 @@ extern double SEALEVELPRESSURE_HPA;
 extern unsigned long lastPressed;
 extern bool PROD;
 
-/**
- * Read all sensors and return a reading object untimestamped. 
- */
-Reading readAll(Sensors::Status *stat, Adafruit_SHT31 *sht, Adafruit_BMP3XX *bmp);
-
-/**
- * Read the image from the camera.
- */
-void read(camera_fb_t* fb);
 
 /**
  * Append a reading object to the log file.
