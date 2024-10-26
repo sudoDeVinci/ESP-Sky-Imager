@@ -45,22 +45,6 @@ double fetchQNH(fs::FS &fs, tm* now, NetworkInfo *network);
  */
 void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network);
 
-/**
- * Send statuses of sensors to HOST on specified PORT.
- * 
- * @param https: The HTTPClient object to use for the request.
- * @param network: The network struct to use the wifi connection.
- * @param stat: The status struct to send to the server.
- * @param reading: The reading struct to send to the server.
- * @param img: The camera_fb_t struct w/ the image to send to the server.
- */
-void sendData(HTTPClient* http, 
-              NetworkInfo* network, 
-              Reading* reading, 
-              Sensors::Status* stat, 
-              camera_fb_t* img);
-
-
 
 
 #endif // COMM_H

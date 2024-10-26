@@ -3,7 +3,7 @@
 /**
  * Initialize the sdcard file system. 
  */
-void sdmmcInit(void){
+void sdmmcInit(){
   SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
   if (!SD_MMC.begin("/sdcard", true, true, SDMMC_FREQ_DEFAULT, 5)) {
     debugln("Card Mount Failed");
@@ -20,7 +20,6 @@ void sdmmcInit(void){
   debugf("Total space: %lluMB\r\n", SD_MMC.totalBytes() / (1024 * 1024));
   debugf("Used space: %lluMB\r\n", SD_MMC.usedBytes() / (1024 * 1024));
 }
-
 
 /**
  * Sleep for a specified number of minutes. 
@@ -95,6 +94,7 @@ const char* readFile (fs::FS &fs, const char * path) {
   return output.c_str();
 }
 
+
 /**
  * Update the timstamp cache file with a new timestamp.
  */
@@ -118,7 +118,6 @@ void updateCache (fs::FS &fs, const char* timestamp, const char* field) {
   else debugln("Cache file updated");
   file.close();
 }
-
 
 /**
  * Update a numaerical cache field / subfield.
@@ -170,6 +169,31 @@ void updateCache (fs::FS &fs, cacheUpdate* update, const char* field) {
 }
 
 /**
+ * Empty the "readings" array in the log file.
+ */
+void clearLog(fs::FS &fs) {
+  const char* cache = readFile(fs, LOG_FILE);
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, cache);
+  if (error) {
+    debugln("Failed to read log file");
+    return;
+  }
+
+  doc["readings"].clear();
+
+  File file = fs.open(LOG_FILE, FILE_WRITE);
+  if(!file){
+    debugln("Failed to open log file for writing");
+    return;
+  }
+
+  if( serializeJson(doc, file) == 0) debugln("Failed to clear log file");
+  else debugln("Log file cleared");
+  file.close();
+}
+
+/**
  * Replace a substring with another substring in a char array.
  * https://forum.arduino.cc/t/replace-and-remove-char-arrays/485806/5 
  */
@@ -209,48 +233,56 @@ void writejpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb) {
 }
 
 /**
+ * Delete a jpg file from the file system.
+ */
+bool deletejpg(fs::FS &fs, tm* timestamp) {
+  char path[35];
+  strftime(path, sizeof(path), "/%Y_%m_%d_%H_%M_%S.jpg", timestamp);
+  debugf("Deleting file: %s\n", path);
+  return fs.remove(path);
+}
+
+/**
  * Read a jpg file from the file system.
  */
 bool readjpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb) {
-    if (!fb) {
-        return false;
-    }
+  if (!fb) {
+    return false;
+  }
 
-    char filename[35];
-    strftime(filename, sizeof(filename), "/%Y_%m_%d_%H_%M_%S.jpg", timestamp);
-    
-    File file = fs.open(filename, FILE_READ);
-    if (!file) {
-        Serial.println("Failed to open file");
-        return false;
-    }
-    
-    size_t fileSize = file.size();
-    
-    // Clean up existing buffer if present
-    if (fb->buf) {
-        delete[] fb->buf;
-    }
-    
-    uint8_t* buffer = new uint8_t[fileSize];
-    if (!buffer) {
-        file.close();
-        return false;
-    }
-    
-    size_t bytesRead = file.read(buffer, fileSize);
+  char filename[35];
+  strftime(filename, sizeof(filename), "/%Y_%m_%d_%H_%M_%S.jpg", timestamp);
+  
+  File file = fs.open(filename, FILE_READ);
+  if (!file) {
+    debugln("Failed to open file");
+    return false;
+  }
+  
+  size_t fileSize = file.size();
+  
+  // Clean up existing buffer if present
+  if (fb->buf) delete[] fb->buf;
+  
+  uint8_t* buffer = new uint8_t[fileSize];
+  if (!buffer) {
     file.close();
-    
-    if (bytesRead != fileSize) {
-        delete[] buffer;
-        return false;
-    }
-    
-    fb->buf = buffer;
-    fb->len = fileSize;
-    fb->width = 2560;  // FRAMESIZE_QHD
-    fb->height = 1440;
-    fb->format = PIXFORMAT_JPEG;
-    
-    return true;
+    return false;
+  }
+  
+  size_t bytesRead = file.read(buffer, fileSize);
+  file.close();
+  
+  if (bytesRead != fileSize) {
+    delete[] buffer;
+    return false;
+  }
+  
+  fb->buf = buffer;
+  fb->len = fileSize;
+  fb->width = 2560;  // FRAMESIZE_QHD
+  fb->height = 1440;
+  fb->format = PIXFORMAT_JPEG;
+  
+  return true;
 }

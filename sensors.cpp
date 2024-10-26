@@ -140,7 +140,6 @@ void read(Adafruit_BMP3XX *bmp, double *out) {
  * Read the image from the camera.
  */
 void read(camera_fb_t* fb) {
-    camera_fb_t * fb = nullptr;
     debugln("Taking image...");
     for(int i = 0; i < 3; i++) {
         fb = esp_camera_fb_get();
@@ -148,6 +147,7 @@ void read(camera_fb_t* fb) {
         delay(100);
     }
     fb = esp_camera_fb_get();
+    delay(20);
 }
 
 /**

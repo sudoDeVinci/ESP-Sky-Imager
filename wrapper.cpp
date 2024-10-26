@@ -1,7 +1,5 @@
 #include "wrapper.h"
 
-
-
 /**
  * Get the QNH from the api if there is internet.
  * 1. read the cache for the last time we queried the api.
@@ -58,7 +56,6 @@ double fetchQNH(fs::FS &fs, tm* now, NetworkInfo *network) {
 
   return qnh;
 }
-
 
 /**
  * Try to get the current time from the NTP server.
@@ -148,6 +145,13 @@ void sendData(HTTPClient* http, NetworkInfo* network, Reading* reading, Sensors:
   delay(20);
 }
 
+/**
+ * Send the Logged Readings and images to the server.
+ * 
+ * @param fs: The file system reference to use for the cache.
+ * @param http: The HTTPClient object to use for the request.
+ * @param network: The network struct to use the wifi connection.
+ */
 void sendLog(fs::FS &fs, HTTPClient* http, NetworkInfo* network) {
   if (!http || !network) {
     debugln("Invalid parameters");
@@ -158,7 +162,7 @@ void sendLog(fs::FS &fs, HTTPClient* http, NetworkInfo* network) {
   ReadingLog log = readLog(SD_MMC);
   Reading reading;
   tm timestamp;
-  camera_fb_t * fb;
+  camera_fb_t *fb = nullptr;
 
   for (int i = 0; i < log.size; i++) {
     reading = log.readings[i];
@@ -166,13 +170,15 @@ void sendLog(fs::FS &fs, HTTPClient* http, NetworkInfo* network) {
 
     timestamp = {0};
     strptime(reading.timestamp, "%Y-%m-%d %H:%M:%S", &timestamp);
-    readjpg(fs, &timestamp, &fb);
+    readjpg(fs, &timestamp, fb);
     sendImage(http, network, fb -> buf, fb -> len, reading.timestamp);
+    deletejpg(fs, &timestamp);
     delay(20);
   }
 
   esp_camera_fb_return(fb);
   delete[] log.readings;
+  clearLog(fs);
 }
 
 /**
@@ -221,9 +227,8 @@ void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) 
       // Take image and save to sd card
       if (sensors -> status.CAM) {
         camera_fb_t * fb = nullptr;
-        read(fb);       
-
-        writejpg(fs, now, fb -> buf, fb -> len);
+        read(fb);  
+        writejpg(fs, now, fb);
         esp_camera_fb_return(fb);
         esp_err_t deinitErr = sensors -> cameraTeardown();
         debugln("WEBSITE UNREACHABLE!  ->  Going to sleep!...");
@@ -235,11 +240,12 @@ void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) 
     // send image to the server.
     camera_fb_t * fb = nullptr;
     read(fb);
-    delay(20);
-
     sendData(&http, network, &reading, &sensors -> status, fb);
-
     esp_camera_fb_return(fb);
     esp_err_t deinitErr = sensors -> cameraTeardown();
+
+    // Send the log file to the server.
+    sendLog(fs, &http, network);
   }
 }  
+

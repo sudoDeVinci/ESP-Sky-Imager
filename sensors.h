@@ -5,7 +5,6 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include "esp_camera.h"
 #include "Adafruit_Sensor.h"
 #include "Adafruit_SHT31.h"
 #include "Adafruit_BMP3XX.h"

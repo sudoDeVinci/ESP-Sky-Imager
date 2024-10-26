@@ -6,6 +6,7 @@
 #include <vector>
 #include <time.h>
 #include <ArduinoJson.h>
+#include "esp_camera.h"
 #include "FS.h"
 #include "SD_MMC.h"
 
@@ -68,14 +69,19 @@ const char* readFile (fs::FS &fs, const char * path);
 void updateCache (fs::FS &fs, const char* timestamp, const char* field);
 
 /**
- * Update a numaerical cache field / subfield.
+ * Update a numaerical cache field.
  */
 void updateCache (fs::FS &fs, double value, const char* field);
 
 /**
- * Update a numaerical cache field / subfield.
+ * Update a nested cache field.
  */
 void updateCache (fs::FS &fs, cacheUpdate* update, const char* field);
+
+/**
+ * Empty the "readings" array in the log file.
+ */
+void clearLog(fs::FS &fs);
 
 /**
  * Replace a substring with another substring in a char array.
@@ -92,6 +98,11 @@ void writejpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb);
  * Read a jpg file from the file system.
  */
 bool readjpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb);
+
+/**
+ * Delete a jpg file from the file system.
+ */
+bool deletejpg(fs::FS &fs, tm* timestamp);
 
 /**
  * Sleep for a specified number of minutes. 
