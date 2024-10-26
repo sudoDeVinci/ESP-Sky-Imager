@@ -274,34 +274,14 @@ extern unsigned long lastPressed;
 extern bool PROD;
 
 /**
- * Initialize the sht31-D object.
- */
-bool initSHT(Adafruit_SHT31 *sht);
-
-/**
- * Initialize the bmp390 object.
- */
-bool initBMP(TwoWire *wire, Adafruit_BMP3XX *bmp);
-
-/**
- * Initialize the SSD1306 display object.
- */
-bool initDISPLAY(Adafruit_SSD1306 *display);
-
-/**
- * Set up the camera.
- */
-bool initCAM();
-
-/**
- * De-initialize the camera.
- */
-esp_err_t cameraTeardown();
-
-/**
  * Read all sensors and return a reading object untimestamped. 
  */
 Reading readAll(Sensors::Status *stat, Adafruit_SHT31 *sht, Adafruit_BMP3XX *bmp);
+
+/**
+ * Read the image from the camera.
+ */
+void read(camera_fb_t* fb);
 
 /**
  * Append a reading object to the log file.

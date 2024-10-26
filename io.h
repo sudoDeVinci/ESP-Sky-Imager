@@ -21,6 +21,9 @@
 #define debugf(...)
 #endif
 
+#define MAX_STRING_LENGTH 256
+#define MAX_PATH_LENGTH 32
+
 #define SD_MMC_CMD  38 //Please do not modify it.
 #define SD_MMC_CLK  39 //Please do not modify it. 
 #define SD_MMC_D0   40 //Please do not modify it.
@@ -80,6 +83,19 @@ void updateCache (fs::FS &fs, cacheUpdate* update, const char* field);
  */
 void str_replace(char *src, char *oldchars, char *newchars);
 
-void writejpg(fs::FS &fs, const char* path, const uint8_t* data, size_t size);
+/**
+ * Write a jpg file to the file system.
+ */
+void writejpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb);
+
+/**
+ * Read a jpg file from the file system.
+ */
+bool readjpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb);
+
+/**
+ * Sleep for a specified number of minutes. 
+ */
+void deepSleepMins(double mins);
 
 #endif

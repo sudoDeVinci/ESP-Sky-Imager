@@ -21,6 +21,15 @@ void sdmmcInit(void){
   debugf("Used space: %lluMB\r\n", SD_MMC.usedBytes() / (1024 * 1024));
 }
 
+
+/**
+ * Sleep for a specified number of minutes. 
+ */
+void deepSleepMins(double mins) {
+  esp_sleep_enable_timer_wakeup(mins*60000000);
+  esp_deep_sleep_start();
+}
+
 /**
  * Initialize the log file. 
  */
@@ -184,11 +193,64 @@ void str_replace(char *src, char *oldchars, char *newchars) { // utility string 
   } while (p && (p = strstr(src, oldchars)));
 }
 
-void writejpg(fs::FS &fs, const char* path, const uint8_t* data, size_t size) {
+/**
+ * Write a jpg file to the file system.
+ */
+void writejpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb) {
+  char path[35];
+  strftime(path, sizeof(path), "/%Y_%m_%d_%H_%M_%S.jpg", timestamp);
   File file = fs.open(path, FILE_WRITE);
   if(!file){
     debugln("Failed to open file in writing mode");
     return;
   }
-  if (file.write(data, size) != size) debugln("Failed to write to file");
+  if (file.write(fb -> buf, fb -> len) != fb -> len) debugln("Failed to write to file");
   else debugln("File written successfully");
+}
+
+/**
+ * Read a jpg file from the file system.
+ */
+bool readjpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb) {
+    if (!fb) {
+        return false;
+    }
+
+    char filename[35];
+    strftime(filename, sizeof(filename), "/%Y_%m_%d_%H_%M_%S.jpg", timestamp);
+    
+    File file = fs.open(filename, FILE_READ);
+    if (!file) {
+        Serial.println("Failed to open file");
+        return false;
+    }
+    
+    size_t fileSize = file.size();
+    
+    // Clean up existing buffer if present
+    if (fb->buf) {
+        delete[] fb->buf;
+    }
+    
+    uint8_t* buffer = new uint8_t[fileSize];
+    if (!buffer) {
+        file.close();
+        return false;
+    }
+    
+    size_t bytesRead = file.read(buffer, fileSize);
+    file.close();
+    
+    if (bytesRead != fileSize) {
+        delete[] buffer;
+        return false;
+    }
+    
+    fb->buf = buffer;
+    fb->len = fileSize;
+    fb->width = 2560;  // FRAMESIZE_QHD
+    fb->height = 1440;
+    fb->format = PIXFORMAT_JPEG;
+    
+    return true;
+}

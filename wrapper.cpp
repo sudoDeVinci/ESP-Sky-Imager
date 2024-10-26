@@ -11,7 +11,9 @@
  * 
  * @param fs: The file system reference to use for the cache.
  * @param timestamp: The timestamp to update the cache with.
- * @param network: The network struct to check if we have wifi connection.
+ * @param network: The network struct to use the wifi connection.
+ * 
+ * @return The QNH value in hPa.
  */
 double fetchQNH(fs::FS &fs, tm* now, NetworkInfo *network) {
   double qnh = UNDEFINED;
@@ -68,7 +70,7 @@ double fetchQNH(fs::FS &fs, tm* now, NetworkInfo *network) {
  * @param now: The time struct to fill with the current time.
  * @param stat: The status struct to check if we have wifi connection.
  */
-void fetchCurrentTime(fs::FS &fs, tm *now, Sensors::Status *stat) {
+void fetchCurrentTime(fs::FS &fs, tm* now, Sensors::Status* stat) {
   if (!now || !stat) {
     debugln("Invalid parameters");
     return;
@@ -117,19 +119,87 @@ void fetchCurrentTime(fs::FS &fs, tm *now, Sensors::Status *stat) {
   updateCache(fs, formattime(now), "NTP");
 }
 
+/**
+ * Send statuses of sensors to HOST on specified PORT.
+ * 
+ * @param https: The HTTPClient object to use for the request.
+ * @param network: The network struct to use the wifi connection.
+ * @param stat: The status struct to send to the server.
+ * @param reading: The reading struct to send to the server.
+ * @param img: The camera_fb_t struct w/ the image to send to the server.
+ */
+void sendData(HTTPClient* http, NetworkInfo* network, Reading* reading, Sensors::Status* stat, camera_fb_t* img) {
 
+  if (!http || !reading || !stat) {
+    debugln("Invalid parameters");
+    return;
+  }
 
-void sendReadings(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) {
+  // Send the statuses to the server.
+  sendStats(http, network, stat, reading -> timestamp);
+  delay(20);
+
+  // Send the readings to the server.
+  sendReadings(http, network, reading);
+  delay(20);
+
+  // Send the image to the server.
+  sendImage(http, network, img -> buf, img -> len, reading -> timestamp);
+  delay(20);
+}
+
+void sendLog(fs::FS &fs, HTTPClient* http, NetworkInfo* network) {
+  if (!http || !network) {
+    debugln("Invalid parameters");
+    return;
+  }
+
+  // Read the log file and send it to the server.
+  ReadingLog log = readLog(SD_MMC);
+  Reading reading;
+  tm timestamp;
+  camera_fb_t * fb;
+
+  for (int i = 0; i < log.size; i++) {
+    reading = log.readings[i];
+    sendReadings(http, network, &reading);
+
+    timestamp = {0};
+    strptime(reading.timestamp, "%Y-%m-%d %H:%M:%S", &timestamp);
+    readjpg(fs, &timestamp, &fb);
+    sendImage(http, network, fb -> buf, fb -> len, reading.timestamp);
+    delay(20);
+  }
+
+  esp_camera_fb_return(fb);
+  delete[] log.readings;
+}
+
+/**
+ * Send the readings to the server.
+ * 1. Get the QNH.
+ * 2. Get the sensor readings.
+ * 3. check if the site is reachable.
+ * 3.1. If not, save the readings to the log file.
+ * 3.2. If yes, send the statuses, readings & image to the server.
+ * 3.2.1. Send the logfile of readings to the server.
+ * 
+ * @param fs: The file system reference to use for the cache.
+ * @param now: The time struct containing the current time.
+ * @param sensors: The sensors struct containing the sensor objects &statuses.
+ * @param network: The network struct to use the wifi connection.
+ */
+void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) {
   if (!sensors) {
     debugln("Invalid parameters");
     return;
   }
 
   // Get the QNH
-  double qnh = fetchQNH(fs, &now, network);
+  double qnh = fetchQNH(fs, now, network);
 
   // Get the sensor readings
-  Reading reading = readAll(&sensors.status, &sensors -> SHT, &sensors -> BMP);
+  Reading reading = readAll(&sensors -> status, &sensors -> SHT, &sensors -> BMP);
   reading.timestamp = formattime(now);
 
   // Send the readings to the server
@@ -144,27 +214,16 @@ void sendReadings(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) {
     HTTPClient http;
 
     // Check if the site is reachable.
-    if (!websiteReachable(&https, network, reading.timestamp)) {
+    if (!websiteReachable(&http, network, reading.timestamp)) {
       debugln("Website is not reachable, saving to log file");
       appendReading(fs, &reading);
 
       // Take image and save to sd card
       if (sensors -> status.CAM) {
         camera_fb_t * fb = nullptr;
-        debugln("Taking image...");
-        camera_fb_t * fb = nullptr;
-          for(int i = 0; i < 3; i++) {
-            fb = esp_camera_fb_get();
-            esp_camera_fb_return(fb);
-            delay(100);
-          }
-        fb = esp_camera_fb_get();
+        read(fb);       
 
-        char* filepath = formattime(now);
-        str_replace(filepath, " ", "-");
-        str_replace(filepath, ":", "-");
-        String path = "/" + String(filepath) + ".jpg";
-        writejpg(fs, path.c_str(), fb -> buf, fb -> len);
+        writejpg(fs, now, fb -> buf, fb -> len);
         esp_camera_fb_return(fb);
         esp_err_t deinitErr = sensors -> cameraTeardown();
         debugln("WEBSITE UNREACHABLE!  ->  Going to sleep!...");
@@ -173,26 +232,13 @@ void sendReadings(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) {
       }
     }
 
-    // send statuses to the server.
-    void sendStats(&http,network, &sensors -> status, reading.timestamp);
-    delay(20);
-
-    // send readings to the server.
-    void sendReadings(&http, network, &reading);
-    delay(20);
-
     // send image to the server.
     camera_fb_t * fb = nullptr;
-    debugln("Taking image...");
-    camera_fb_t * fb = nullptr;
-      for(int i = 0; i < 3; i++) {
-        fb = esp_camera_fb_get();
-        esp_camera_fb_return(fb);
-        delay(100);
-      }
-    fb = esp_camera_fb_get();
-    sendImage(&http, network, fb -> buf, fb -> len, reading.timestamp);
+    read(fb);
     delay(20);
+
+    sendData(&http, network, &reading, &sensors -> status, fb);
+
     esp_camera_fb_return(fb);
     esp_err_t deinitErr = sensors -> cameraTeardown();
   }

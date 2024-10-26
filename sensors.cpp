@@ -137,6 +137,20 @@ void read(Adafruit_BMP3XX *bmp, double *out) {
 }
 
 /**
+ * Read the image from the camera.
+ */
+void read(camera_fb_t* fb) {
+    camera_fb_t * fb = nullptr;
+    debugln("Taking image...");
+    for(int i = 0; i < 3; i++) {
+        fb = esp_camera_fb_get();
+        esp_camera_fb_return(fb);
+        delay(100);
+    }
+    fb = esp_camera_fb_get();
+}
+
+/**
  * Read all sensors and return a reading object untimestamped. 
  */
 Reading readAll(Sensors::Status *stat, Adafruit_SHT31 *sht, Adafruit_BMP3XX *bmp) {
