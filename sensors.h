@@ -83,6 +83,39 @@ struct Reading : public Printable {
     }
 };
 
+/**
+ * Struct to hold a log of readings.
+ */
+struct ReadingLog{
+    size_t size;
+    Reading *readings;
+};
+
+
+extern double SEALEVELPRESSURE_HPA;
+extern unsigned long lastPressed;
+extern bool PROD;
+
+/**
+ * Removes the outliers from an array and returns the mean of the remaining values.
+ */
+double removeOutliersandGetMean(double* dataArr, uint16_t size);
+
+/**
+ * Calculate dewpoint corrected for altitude. 
+ */
+double calcDP(double temperature, double humidity, double pressure, double altitude);
+
+/**
+ * Append a reading object to the log file.
+ */
+void appendReading(fs::FS &fs, Reading* reading);
+
+/**
+ * Read the log file and return an array of readings.
+ * WARNING: DYNAMICALLY ALLOCATED HEAP ARRAY.
+ */
+ReadingLog readLog(fs::FS &fs);
 
 /**
  * Struct to hold sensor details and functionality.
@@ -254,7 +287,7 @@ struct Sensors {
         for(int i = 0; i < 3; i++) {
             frame = esp_camera_fb_get();
             delay(20);
-            esp_camera_fb_return(fb);
+            esp_camera_fb_return(frame);
             delay(20);
         }
         frame = esp_camera_fb_get();
@@ -304,8 +337,8 @@ struct Sensors {
         uint8_t valid = 0;
 
         while (valid < SAMPLES && errors < 5) {
-            h[valid] = sht -> readHumidity();
-            t[valid] = sht -> readTemperature();
+            h[valid] = SHT.readHumidity();
+            t[valid] = SHT.readTemperature();
             if (isnan(h[valid]) || isnan(t[valid])) {
                 errors++;
                 continue;
@@ -336,30 +369,5 @@ struct Sensors {
         }
     }
 };
-
-/**
- * Struct to hold a log of readings.
- */
-struct ReadingLog{
-    size_t size;
-    Reading *readings;
-};
-
-
-extern double SEALEVELPRESSURE_HPA;
-extern unsigned long lastPressed;
-extern bool PROD;
-
-
-/**
- * Append a reading object to the log file.
- */
-void appendReading(fs::FS &fs, Reading* reading);
-
-/**
- * Read the log file and return an array of readings.
- * WARNING: DYNAMICALLY ALLOCATED HEAP ARRAY.
- */
-ReadingLog readLog(fs::FS &fs);
 
 #endif

@@ -200,8 +200,7 @@ void sendLog(fs::FS &fs, HTTPClient* http, NetworkInfo* network) {
 void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) {
   if (!sensors || !now || !network) {
     debugln("Invalid parameters");
-    delay(50);
-    deepSleepMins(SLEEP_MINS);
+    return;
   }
 
   // Get the QNH
@@ -224,9 +223,8 @@ void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) 
       esp_camera_fb_return(fb);
       sensors -> cameraTeardown();
     }
-    debugln("WEBSITE UNREACHABLE!  ->  Going to sleep!...");
-    delay(50);
-    deepSleepMins(SLEEP_MINS);
+
+    return;
   }
 
   
@@ -246,10 +244,7 @@ void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) 
         esp_camera_fb_return(fb);
         sensors -> cameraTeardown();
       }
-
-      debugln("Going to sleep!...");
-      delay(50);
-      deepSleepMins(SLEEP_MINS);
+      return;
     }
 
     // send image to the server.
@@ -261,8 +256,5 @@ void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) 
     // Send the log file to the server.
     sendLog(fs, &http, network);
   }
-
-  delay(50);
-  deepSleepMins(SLEEP_MINS);
 }  
 

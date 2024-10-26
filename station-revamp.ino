@@ -31,10 +31,8 @@ void setup() {
 }
 
 void loop() {
-    //debugln("Reading sensors...");
-    //Reading reading = readAll(&sensors.status, &sensors.SHT, &sensors.BMP);
-    //debugln("Reading complete!");
-    //debugln(reading);
-    debugln(formattime(&network.TIMEINFO));
-    delay(10000000000);
+  serverInterop(SD_MMC, &network.TIMEINFO, &sensors, &network);
+  debugln("Going to sleep...");
+  delay(100);
+  deepSleepMins(SLEEP_MINS);
 }
