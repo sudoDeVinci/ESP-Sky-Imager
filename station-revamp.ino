@@ -10,6 +10,8 @@ Sensors sensors;
 // Struct of network information.
 NetworkInfo network;
 
+FS* fileSystem;
+
 void setup() {
     if (DEBUG == 1) { 
       Serial.begin(115200);
@@ -17,9 +19,15 @@ void setup() {
     }
 
     // Initialize file system reuirements.
-    sdmmcInit();
-    initLogFile(SD_MMC);
-    initCacheFile(SD_MMC);
+    fileSystem = DetermineFileSystem();
+    if (!fileSystem) {
+      debugln("Failed to mount any file system");
+      delay(100);
+      deepSleepMins(SLEEP_MINS);
+    }
+
+    initLogFile(*fileSystem);
+    initCacheFile(*fileSystem);
     /**
      * wire.begin(sda, scl)
      * 32,33 for ESP32 "S1" WROVER
@@ -27,11 +35,11 @@ void setup() {
      */
     sensors = Sensors(&wire);
     sensors.wire -> begin(41,42);
-    fetchCurrentTime(SD_MMC, &network.TIMEINFO, &sensors.status);
+    fetchCurrentTime(*fileSystem, &network.TIMEINFO, &sensors.status);
 }
 
 void loop() {
-  serverInterop(SD_MMC, &network.TIMEINFO, &sensors, &network);
+  serverInterop(*fileSystem, &network.TIMEINFO, &sensors, &network);
   debugln("Going to sleep...");
   delay(100);
   deepSleepMins(SLEEP_MINS);

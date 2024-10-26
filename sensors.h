@@ -26,6 +26,7 @@
 
 /**
  * A singular timestamped reading from the sensors.
+ * 
  */
 struct Reading : public Printable {
     const char* timestamp;        // Pre-formatted timestamp as a string (char*)
@@ -91,29 +92,44 @@ struct ReadingLog{
     Reading *readings;
 };
 
-
-extern double SEALEVELPRESSURE_HPA;
 extern unsigned long lastPressed;
 extern bool PROD;
 
 /**
  * Removes the outliers from an array and returns the mean of the remaining values.
+ * 
+ * @param dataArr: The array of doubles to remove outliers from.
+ * @param size: The size of the array.
+ * 
+ * @return The mean of the remaining values after removing outliers via IQR.
  */
 double removeOutliersandGetMean(double* dataArr, uint16_t size);
 
 /**
  * Calculate dewpoint corrected for altitude. 
+ * 
+ * @param temperature: The temperature in degrees Celsius.
+ * @param humidity: The humidity as a percentage.
+ * @param pressure: The pressure in hectoPascals.
+ * @param altitude: The altitude in meters.
+
+ * @return The dewpoint in degrees Celsius.
  */
 double calcDP(double temperature, double humidity, double pressure, double altitude);
 
 /**
  * Append a reading object to the log file.
+ * @param fs: The file system reference to use for the cache.
+ * @param reading: The reading object to append to the log file.
  */
 void appendReading(fs::FS &fs, Reading* reading);
 
 /**
  * Read the log file and return an array of readings.
  * WARNING: DYNAMICALLY ALLOCATED HEAP ARRAY.
+ * @param fs: The file system reference to use for the cache.
+ * 
+ * @return A ReadingLog struct containing an array of readings, and the number of readings.
  */
 ReadingLog readLog(fs::FS &fs);
 

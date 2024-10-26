@@ -3,22 +3,35 @@
 /**
  * Initialize the sdcard file system. 
  */
-void sdmmcInit(){
+bool sdmmcInit(){
   SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
   if (!SD_MMC.begin("/sdcard", true, true, SDMMC_FREQ_DEFAULT, 5)) {
     debugln("Card Mount Failed");
-    return;
+    return false;
   }
   uint8_t cardType = SD_MMC.cardType();
   if(cardType == CARD_NONE){
       debugln("No SD_MMC card attached");
-      return;
+      return false;
   }
 
   uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
   debugf("SD_MMC Card Size: %lluMB\n", cardSize);  
   debugf("Total space: %lluMB\r\n", SD_MMC.totalBytes() / (1024 * 1024));
   debugf("Used space: %lluMB\r\n", SD_MMC.usedBytes() / (1024 * 1024));
+  return true;
+}
+
+/**
+ * Determine the file system to use for IO.
+ * If we can't use the sdcard, use the local file system.
+ * @return The file system reference to use for IO. 
+ */
+FS::fs* DetermineFileSystem() {
+  if(sdmmcInit()) return &SD_MMC;
+  if(LittleFS.begin(true)) return &LittleFS;
+  debugln("Failed to mount any file system");
+  return nullptr;
 }
 
 /**
