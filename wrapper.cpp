@@ -22,17 +22,17 @@ double fetchQNH(fs::FS &fs, tm* now, NetworkInfo *network) {
   const char *cache = readFile(fs, CACHE_FILE);
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, cache);
-  if (!error) {
-    debugln("Failed to read cache file");
+  delete[] cache;
 
-    const char* qnhTS = doc["QNH"]["timestamp"];
-    qnh = doc["QNH"]["value"];
-    debug("Cached QNH timestamp is: ");
-    debugln(qnhTS);
+  if (!error) {
+    const char* qnhTS = doc["QNH"]["timestamp"] | "None";
+    qnh = doc["QNH"]["value"] | UNDEFINED;
 
     // If timestamp is not "None", try to parse and check age
     if (strcmp(qnhTS, "None") != 0) {
       struct tm cacheTime = {0};
+      debugf("Cached QNH timestamp is: %s\n", qnhTS);
+      debugf("Cached QNH value is: %f\n", qnh);
       if (strptime(qnhTS, "%Y-%m-%d %H:%M:%S", &cacheTime)) {
         constexpr int CACHE_TIMEOUT_SECONDS = 7200;  // 2 hours
         double timeDiff = difftime(mktime(now), mktime(&cacheTime));
@@ -55,7 +55,7 @@ double fetchQNH(fs::FS &fs, tm* now, NetworkInfo *network) {
   // Update the cache with the new time.
   cacheUpdate update = {qnh, formattime(now)};
   updateCache(fs, &update, "QNH");
-
+  delete[] update.timestamp;
   return qnh;
 }
 
@@ -82,6 +82,7 @@ void fetchCurrentTime(fs::FS &fs, tm* now, Sensors::Status* stat) {
   const char* cache = readFile(fs, CACHE_FILE);
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, cache);
+  delete[] cache;
   if (error) {
     debugln("Failed to parse cache JSON");
     return;
@@ -89,20 +90,22 @@ void fetchCurrentTime(fs::FS &fs, tm* now, Sensors::Status* stat) {
   debugln("Cache read successfully");
 
   // Specifically read the last time we queried the NTP server.
-  const char* timestamp = doc["NTP"];
-  debug("Cached time is: ");
-  debugln(timestamp);
+  const char* timestamp = doc["NTP"] | "None";
 
   // If timestamp is not "None", try to parse and check age
   if (strcmp(timestamp, "None") != 0) {
     struct tm cacheTime = {0};
+    debugf("Cached NTP timestamp is: %s\n", timestamp);
     if (strptime(timestamp, "%Y-%m-%d %H:%M:%S", &cacheTime)) {
       constexpr int CACHE_TIMEOUT_SECONDS = 21600;  // 6 hours
       double timeDiff = difftime(mktime(now), mktime(&cacheTime));
       // cache is still valid - return
       if (timeDiff <= CACHE_TIMEOUT_SECONDS) return;
       debugln("Cache is older than 6 hours, updating time...");
-    }
+    } else debugln("Failed to parse cached timestamp");
+
+    return;
+
   // If timestamp is "None", update the cache.
   } else debugln("Cache is empty, updating time...");
 
@@ -115,7 +118,9 @@ void fetchCurrentTime(fs::FS &fs, tm* now, Sensors::Status* stat) {
   // Get the current time from the NTP server.
   setClock(now);
   // Update the cache with the new time.
-  updateCache(fs, formattime(now), "NTP");
+  char* ts = formattime(now);
+  updateCache(fs, ts, "NTP");
+  delete[] ts;
 }
 
 /**
@@ -203,7 +208,14 @@ void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) 
     return;
   }
 
+
   // Instantiate the Wifi Client.
+  if (network -> CLIENT) delete network -> CLIENT;
+  if (WiFi.status() != WL_CONNECTED) {
+    debugln("Disconnected from WiFi, reconnecting");
+    wifiSetup(network, &sensors -> status);
+    return;
+  }
   WiFiClientSecure *client = new WiFiClientSecure;
   network -> CLIENT = client;
 

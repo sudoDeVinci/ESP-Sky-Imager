@@ -11,7 +11,6 @@
  */
 void setClock(tm *timeinfo) {
   configTime(0, 0, "pool.ntp.org");
-
   debug(F("Waiting for NTP time sync: "));
   time_t nowSecs = time(nullptr);
   while (nowSecs < 8 * 3600 * 2) {
@@ -54,19 +53,6 @@ void getTime(tm *timeinfo, int timer) {
   debugln("Done");
 }
 
-/**
- * Format the timestamp as MySQL DATETIME.
- * If the year is 1970, return "None".
- * 
- * @param timeinfo: tm struct within global Network struct to store the time information.
- * @return char*: timestamp in MySQL DATETIME format.
- */
-char* formattime(tm* now) {
-  if (now -> tm_year == 1970) return "None";
-  char timestamp[30];
-  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", now);
-  return timestamp;
-}
 
 /**
  * Check if the current time is between 5 PM and 6 AM.
@@ -158,6 +144,7 @@ bool wifiSetup(NetworkInfo* network, Sensors::Status *stat) {
   const char* nwinfo = readFile(SD_MMC, NETWORK_FILE);
   JsonDocument jsoninfo;
   deserializeJson(jsoninfo, nwinfo);
+  delete[] nwinfo;
   const JsonArray networks = jsoninfo["networks"];
 
   // Scan surrounding networks.
@@ -185,10 +172,20 @@ bool wifiSetup(NetworkInfo* network, Sensors::Status *stat) {
 
 /**
  * Send a request to the server and return the response as a string.
+ * WARNING: Dynamically allocated memory for the response string.
+ * @param HTTP: The HTTPClient object to use for the request.
+ * @param httpCode: The HTTP response code to check for errors.
+ * 
+ * @return The response from the server as a string.
  */
 const char* getResponse(HTTPClient *HTTP, int httpCode) {
-  if (httpCode > 0) return HTTP -> getString().c_str();
-  else return HTTP -> errorToString(httpCode).c_str();
+  String output;
+  if (httpCode > 0) output.concat(HTTP -> getString());
+  else output.concat(HTTP -> errorToString(httpCode));
+
+  char* result = new char[output.length() + 1];
+  strcpy(result, output.c_str());
+  return result;
 }
 
 /**
@@ -284,6 +281,7 @@ void sendStats(HTTPClient* https, NetworkInfo* network, Sensors::Status *stat, c
 
     const char* reply = send(https, network, timestamp);
     debugln(reply);
+    delete[] reply;
     https -> end();
 }
 
@@ -334,7 +332,7 @@ void sendReadings(HTTPClient* https, NetworkInfo* network, Reading* readings) {
   
   const char* reply = send(https, network, readings -> timestamp);
   debugln(reply);
-
+  delete[] reply;
   https -> end();
 }
 
@@ -409,10 +407,14 @@ double getQNH(NetworkInfo* network) {
   strcat(url, values);
 
   https.begin(url);
-
+  debugln(url);
   const int httpCode = https.GET();
   const char* reply = getResponse(&https, httpCode);
-  return parseQNH(reply);
+  debugln(reply);
+  double out = parseQNH(reply);
+  delete[] reply;
+  https.end();
+  return out;
 }
 
 /**
@@ -429,8 +431,9 @@ void sendImage(HTTPClient* https, NetworkInfo* network, uint8_t* buf, size_t len
 
   debugln(url);
 
-  send(https, network, timestamp, buf, len);
-
+  const char* reply = send(https, network, timestamp, buf, len);
+  debugln(reply);
+  delete[] reply;
   https -> end();
 }
 

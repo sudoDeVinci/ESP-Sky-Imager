@@ -109,16 +109,6 @@ struct NetworkInfo {
 void setClock(tm *timeinfo);
 
 /**
- * Format the timestamp as MySQL DATETIME.
- * If the year is 1970, return "None".
- *  
- * @param timeinfo: tm struct within global Network struct to store the time information.
- * 
- * @return char*: timestamp in MySQL DATETIME format.
- */
-char* formattime(tm* timeinfo);
-
-/**
   * Get the current time and format the timestamp as MySQL DATETIME.
   * timeinfo is an empty struct whihc is filled by calling getLocalTime().
   * Big thanks to Andreas Spiess:

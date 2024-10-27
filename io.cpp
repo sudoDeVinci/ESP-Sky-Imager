@@ -1,7 +1,8 @@
 #include "io.h"
 
 /**
- * Initialize the sdcard file system. 
+ * Attempt to initialize the sdcard file system. 
+ * @return True if the sdcard was successfully mounted, false otherwise.
  */
 bool sdmmcInit(){
   SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
@@ -28,14 +29,21 @@ bool sdmmcInit(){
  * @return The file system reference to use for IO. 
  */
 fs::FS* DetermineFileSystem() {
-  if(sdmmcInit()) return &SD_MMC;
-  if(LittleFS.begin(true)) return &LittleFS;
+  if(sdmmcInit()) {
+    debugln("SD_MMC mounted");
+    return &SD_MMC;
+  }
+  if(LittleFS.begin(true)) {
+    debugln("LittleFS mounted");
+    return &LittleFS;
+  }
   debugln("Failed to mount any file system");
   return nullptr;
 }
 
 /**
  * Sleep for a specified number of minutes. 
+ * @param mins: The number of minutes to sleep for.
  */
 void deepSleepMins(double mins) {
   esp_sleep_enable_timer_wakeup(mins*60000000);
@@ -43,7 +51,8 @@ void deepSleepMins(double mins) {
 }
 
 /**
- * Initialize the log file. 
+ * Initialize the log file.
+ * @param fs: The file system reference to use for the log file. 
  */
 void initLogFile (fs::FS &fs) {
   // Check if the log file exists, if not create it.
@@ -62,7 +71,8 @@ void initLogFile (fs::FS &fs) {
 
 /**
  * Initialize the cache file. 
- */
+ * @param fs: The file system reference to use for the cache.
+ */ 
 void initCacheFile (fs::FS &fs) {
   // Check if the log file exists, if not create it.
   if(fs.exists(CACHE_FILE)) return;
@@ -84,37 +94,63 @@ void initCacheFile (fs::FS &fs) {
 }
 
 /**
- * Read the conf file and return a String.
+ * Read the conf file and return a dynamically allocated const char*.
+ * WARNING: Dynamically allocated char array for file output.
+ * @param fs: The file system reference to use for the cache.
+ * @param path: The path to the file to read.
+ * 
+ * @return The contents of the file as a char array.
  */
-const char* readFile (fs::FS &fs, const char * path) {
+const char* readFile(fs::FS &fs, const char * path) {
   debugf("\nReading file: %s\r\n", path);
 
-  String output = "";
-
+  String output;
   File file = fs.open(path);
-  if(!file || file.isDirectory()){
+
+  if (!file || file.isDirectory()) {
     debugf("- failed to open %s for reading\r\n", path);
-    return output.c_str();
+    return nullptr;  // Return nullptr on failure
   }
 
-  while(file.available()){
-    char ch = file.read();
-    output.concat(ch);
+  while (file.available()) {
+    output.concat((char)file.read());
   }
 
-  debugln();
   file.close();
-  return output.c_str();
+
+  // Dynamically allocate memory to hold the return string
+  char* result = new char[output.length() + 1];
+  strcpy(result, output.c_str());
+  return result;  // Return the dynamically allocated memory
 }
 
+/**
+ * Format the timestamp as MySQL DATETIME.
+ * If the year is 1970, return "None".
+ * WARNING: Allocating new char[40] every time this function is called.
+ * 
+ * @param timeinfo: tm struct within global Network struct to store the time information.
+ * 
+ * @return char*: timestamp in MySQL DATETIME format.
+ */
+char* formattime(tm* now) {
+  char *timestamp = new char[30];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", now);
+  return timestamp;
+}
 
 /**
  * Update the timstamp cache file with a new timestamp.
+ * @param fs: The file system reference to use for the cache.
+ * @param timestamp: The new timestamp to write to the cache field.
+ * @param field: The field to write the timestamp to.
  */
-void updateCache (fs::FS &fs, const char* timestamp, const char* field) {
+void updateCache (fs::FS &fs, char* timestamp, const char* field) {
   const char* cache = readFile(fs, CACHE_FILE);
+  debugf("Updating cache field: %s with timestamp: %s\n", field, timestamp);
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, cache);
+  delete[] cache;
   if (error) {
     debugln("Failed to read cache file");
     return;
@@ -133,9 +169,18 @@ void updateCache (fs::FS &fs, const char* timestamp, const char* field) {
 }
 
 /**
- * Update a numaerical cache field / subfield.
+ * Update a numaerical cache field.
+ * @param fs: The file system reference to use for the cache.
+ * @param value: The new value to write to the cache field.
+ * @param field: The field to write the value to.
  */
 void updateCache (fs::FS &fs, double value, const char* field) {
+  if (isnan(value) || isinf(value)) {
+    debugln("Invalid value");
+    return;
+  }
+
+  String fld = String(field);
   const char* cache = readFile(fs, CACHE_FILE);
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, cache);
@@ -144,7 +189,7 @@ void updateCache (fs::FS &fs, double value, const char* field) {
     return;
   }
 
-  doc[field] = value;
+  doc[fld] = value;
 
   File file = fs.open(CACHE_FILE, FILE_WRITE);
   if(!file){
@@ -157,7 +202,10 @@ void updateCache (fs::FS &fs, double value, const char* field) {
 }
 
 /**
- * Update a numaerical cache field / subfield.
+ * Update a nested cache field.
+ * @param fs: The file system reference to use for the cache.
+ * @param update: The new value - timestamp pair to write to the cache field.
+ * @param field: The field to write the value to.
  */
 void updateCache (fs::FS &fs, cacheUpdate* update, const char* field) {
   const char* cache = readFile(fs, CACHE_FILE);
@@ -168,8 +216,12 @@ void updateCache (fs::FS &fs, cacheUpdate* update, const char* field) {
     return;
   }
 
-  doc[field]["value"] = update->value;
-  doc[field]["timestamp"] = update->timestamp;
+  String fld = String(field);
+  String ts = String(update -> timestamp);
+
+  if (isnan(update -> value)) doc[fld]["value"] = update->value;
+
+  if (ts.length() > 0) doc[fld]["timestamp"] = ts;
 
   File file = fs.open(CACHE_FILE, FILE_WRITE);
   if(!file){
@@ -183,6 +235,7 @@ void updateCache (fs::FS &fs, cacheUpdate* update, const char* field) {
 
 /**
  * Empty the "readings" array in the log file.
+ * @param fs: The file system reference to use.
  */
 void clearLog(fs::FS &fs) {
   const char* cache = readFile(fs, LOG_FILE);
@@ -232,11 +285,14 @@ void str_replace(char *src, char *oldchars, char *newchars) { // utility string 
 
 /**
  * Write a jpg file to the file system.
+ * @param fs: The file system reference to use.
+ * @param timestamp: The timestamp to use for the file name.
+ * @param fb: The camera frame buffer to write to the file.
  */
 void writejpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb) {
-  char path[35];
-  strftime(path, sizeof(path), "/%Y_%m_%d_%H_%M_%S.jpg", timestamp);
+  char* path = formattime(timestamp);
   File file = fs.open(path, FILE_WRITE);
+  delete[] path;
   if(!file){
     debugln("Failed to open file in writing mode");
     return;
@@ -247,6 +303,10 @@ void writejpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb) {
 
 /**
  * Delete a jpg file from the file system.
+ * @param fs: The file system reference to use.
+ * @param timestamp: The timestamp to use for the file name.
+ * 
+ * @return True if the file was deleted successfully, false otherwise.
  */
 bool deletejpg(fs::FS &fs, tm* timestamp) {
   char path[35];
@@ -257,16 +317,21 @@ bool deletejpg(fs::FS &fs, tm* timestamp) {
 
 /**
  * Read a jpg file from the file system.
- */
+ * @param fs: The file system reference to use.
+ * @param timestamp: The timestamp to use for the file name.
+ * @param fb: The camera frame buffer to read the file to.
+ * 
+ * @return True if the file was read successfully, false otherwise.
+ */  
 bool readjpg(fs::FS &fs, tm* timestamp, camera_fb_t* fb) {
   if (!fb) {
     return false;
   }
 
-  char filename[35];
-  strftime(filename, sizeof(filename), "/%Y_%m_%d_%H_%M_%S.jpg", timestamp);
-  
+  char* filename = formattime(timestamp);
   File file = fs.open(filename, FILE_READ);
+  delete[] filename;
+  
   if (!file) {
     debugln("Failed to open file");
     return false;
