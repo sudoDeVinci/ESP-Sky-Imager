@@ -208,7 +208,6 @@ void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) 
     return;
   }
 
-
   // Instantiate the Wifi Client.
   if (network -> CLIENT) delete network -> CLIENT;
   if (WiFi.status() != WL_CONNECTED) {

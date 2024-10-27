@@ -42,11 +42,11 @@ void setup() {
     configTime(0, 0, "pool.ntp.org");
     setenv("TZ", "CET-1-CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
     fetchCurrentTime(*fileSystem, &network.TIMEINFO, &sensors.status);
-    fetchQNH(*fileSystem, &network.TIMEINFO, &network);
+    // fetchQNH(*fileSystem, &network.TIMEINFO, &network);
 }
 
 void loop() {
-  //serverInterop(*fileSystem, &network.TIMEINFO, &sensors, &network);
+  serverInterop(*fileSystem, &network.TIMEINFO, &sensors, &network);
   debugln("Going to sleep...");
   delay(100);
   deepSleepMins(SLEEP_MINS);
