@@ -203,6 +203,10 @@ void serverInterop(fs::FS &fs, tm* now, Sensors* sensors, NetworkInfo* network) 
     return;
   }
 
+  // Instantiate the Wifi Client.
+  WiFiClientSecure *client = new WiFiClientSecure;
+  network -> CLIENT = client;
+
   // Get the QNH
   double qnh = fetchQNH(fs, now, network);
 

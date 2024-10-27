@@ -125,8 +125,8 @@ bool connect(const char* ssid, const char* pass, NetworkInfo* network, Sensors::
   uint8_t connect_count = 0; 
 
   // Wait for the WiFi connection to be established with a timeout of 10 attempts.
-  while (WiFi.status() != WL_CONNECTED && connect_count < 10) {
-    delay(random(250, 550));
+  while (WiFi.status() != WL_CONNECTED && connect_count < 20) {
+    delay(random(350, 550));
     debug(".");
     connect_count++;
   }
@@ -167,16 +167,14 @@ bool wifiSetup(NetworkInfo* network, Sensors::Status *stat) {
   debugln("Scan done");
 
   for (int i = 0; i < n; i++) {
-    const char* ssid = WiFi.SSID(i).c_str();
-    const char* networkSSID;
-    const char* networkPassword;
+    String ssid = WiFi.SSID(i);
     for (JsonVariant networkJson: networks) {
-      networkSSID = networkJson["SSID"];
-      networkPassword = networkJson["PASS"];
+      String networkSSID = networkJson["SSID"];
+      String networkPassword = networkJson["PASS"];
       if (ssid == networkSSID) {
         debug("Connecting to WiFi Network ");
         debugln(ssid);
-        if (connect(networkSSID, networkPassword, network, stat)) {
+        if (connect(networkSSID.c_str(), networkPassword.c_str(), network, stat)) {
           return true;
         }
       }

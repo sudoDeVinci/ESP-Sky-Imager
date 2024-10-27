@@ -28,6 +28,7 @@ void setup() {
 
     initLogFile(*fileSystem);
     initCacheFile(*fileSystem);
+
     /**
      * wire.begin(sda, scl)
      * 32,33 for ESP32 "S1" WROVER
@@ -35,6 +36,11 @@ void setup() {
      */
     sensors = Sensors(&wire);
     sensors.wire -> begin(41,42);
+
+    wifiSetup(&network, &sensors.status);
+
+    configTime(0, 0, "pool.ntp.org");
+    setenv("TZ", "CET-1-CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
     fetchCurrentTime(*fileSystem, &network.TIMEINFO, &sensors.status);
 }
 
