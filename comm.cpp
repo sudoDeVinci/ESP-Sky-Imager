@@ -439,7 +439,7 @@ void sendImage(HTTPClient* https, NetworkInfo* network, uint8_t* buf, size_t len
 /**
  * Update the board firmware via the update server.
  */
-void OTAUpdate(NetworkInfo* network, const String& firmware_version) {
+void OTAUpdate(NetworkInfo* network, const char* firmware_version) {
   debugln("\n[UPDATES]");
 
   size_t length = strlen(network -> HOST) + strlen(network -> routes.UPDATE) + 1;

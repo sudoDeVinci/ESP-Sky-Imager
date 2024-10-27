@@ -102,15 +102,18 @@ struct NetworkInfo {
 };
 
 /**
- * Set the internal clock of the ESP32 to the current time.
+ * Set the internal clock of the ESP32 to the current time using NTP AND fill the timeinfo struct with that time.
+ * Big thanks to Andreas Spiess.
+ * @param timeinfo: tm struct to hold the time information.
  */
 void setClock(tm *timeinfo);
 
 /**
  * Format the timestamp as MySQL DATETIME.
  * If the year is 1970, return "None".
- * 
+ *  
  * @param timeinfo: tm struct within global Network struct to store the time information.
+ * 
  * @return char*: timestamp in MySQL DATETIME format.
  */
 char* formattime(tm* timeinfo);
@@ -122,12 +125,15 @@ char* formattime(tm* timeinfo);
   * https://github.com/SensorsIot/NTP-time-for-ESP8266-and-ESP32/blob/master/NTP_Example/NTP_Example.ino
   *
   *  If tm_year is not equal to 0xFF, it is assumed that valid time information has been received.
+  * @param timeinfo: tm struct to hold the time information.
+  * @param timer: The number of seconds to use as a timeout.
   */
 void getTime(tm *timeinfo, int timer);
 
 /**
  * Check if the current time is between 5 PM and 6 AM.
  * If so, enter deep sleep mode until 6 AM.
+ * @param timeinfo: tm struct to hold the current time information.
  */
 void checkAndSleep(tm *timeinfo);
 
@@ -135,43 +141,70 @@ void checkAndSleep(tm *timeinfo);
  * Connect to wifi Network and apply SSL certificate.
  * Attempt to match the SSID of nearby netwokrs with an SSID in the networkInfo file.
  * If a match is found, connect to the network and apply the SSL certificate.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param stat: Sensors::Status struct to hold the status of the sensors.
+ * 
+ * @return True if the connection was successful, false otherwise.
  */
 bool wifiSetup(NetworkInfo* network, Sensors::Status *stat);
 
 /**
  * Check if the website is reachable before trying to communicate further.
+ * @param https: HTTPClient object to use for the request.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param timestamp: The timestamp to use for the request header.
+ * 
+ * @return True if the website is reachable, false otherwise.
  */
 bool websiteReachable(HTTPClient* https, NetworkInfo* network, const char* timestamp);
 
 /**
  * Send statuses of sensors to HOST on specified PORT. 
+ * @param https: HTTPClient object to use for the request.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param stat: Sensors::Status struct to hold the status of the sensors.
+ * @param timestamp: The timestamp to use for the request header.
  */
 void sendStats(HTTPClient* https, NetworkInfo* network, Sensors::Status *stat, const char* timestamp);
 
 /**
  * Send readings from weather sensors to HOST on specified PORT. 
+ * @param https: HTTPClient object to use for the request.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param readings: Reading struct to hold the readings from the sensors.
  */
 void sendReadings(HTTPClient* https, NetworkInfo* network, Reading* readings);
 
 /**
  * Send image from weather station to server. 
+ * @param https: HTTPClient object to use for the request.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param buf: The image buffer to send.
+ * @param len: The length of the image buffer.
+ * @param timestamp: The timestamp to use for the request header.
  */
 void sendImage(HTTPClient* https, NetworkInfo* network, uint8_t* buf, size_t len, const char* timestamp);
 
 /**
  * Parse the QNH from the server response.
+ * @param json: The JSON response from the server.
+ * @return The QNH value in hPa.
  */
 double parseQNH(const char* json);
 
 /**
  * Get the Sea Level Pressure from the server.
+ * @param network: NetworkInfo struct to hold network details.
+ * @return The Sea Level Pressure in hPa.
 */
 double getQNH(NetworkInfo* network);
 
 /**
  * Update the board firmware via the update server.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param firmware_version: The current firmware version.
  */
-void OTAUpdate(NetworkInfo* network, const String& firmware_version);
+void OTAUpdate(NetworkInfo* network, const char* firmware_version);
 
 
 #endif // COMM_H

@@ -27,7 +27,7 @@ bool sdmmcInit(){
  * If we can't use the sdcard, use the local file system.
  * @return The file system reference to use for IO. 
  */
-FS::fs* DetermineFileSystem() {
+fs::FS* DetermineFileSystem() {
   if(sdmmcInit()) return &SD_MMC;
   if(LittleFS.begin(true)) return &LittleFS;
   debugln("Failed to mount any file system");

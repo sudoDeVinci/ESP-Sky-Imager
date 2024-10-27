@@ -50,7 +50,7 @@ bool sdmmcInit(void);
  * If we can't use the sdcard, use the local file system.
  * @return The file system reference to use for IO. 
  */
-FS::fs* DetermineFileSystem(void);
+fs::FS* DetermineFileSystem(void);
 
 /**
  * Initialize the log file.
