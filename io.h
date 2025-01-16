@@ -32,7 +32,7 @@
 
 #define LOG_FILE "/log.json"
 #define CACHE_FILE "/cache.json"
-#define NETWORK_FILE "/network.json"
+#define NETWORK_FILE "/networks.json"
 
 struct cacheUpdate {
   const double value;
