@@ -8,6 +8,8 @@
 
 /**
  * Set the internal clock via NTP server.
+ * Big thanks to Andreas Spiess.
+ * @param timeinfo*: tm struct within global Network struct to store the time information.
  */
 void setClock(tm *timeinfo) {
   configTime(0, 0, "pool.ntp.org");
@@ -59,20 +61,29 @@ void getTime(tm *timeinfo, int timer) {
  * If so, enter deep sleep mode until 6 AM.
  * 
  * @param timeinfo*: tm struct within global Network struct to store the time information.
+ * @param wakeHour: The hour to wake up at.
+ * @param sleepHour: The hour to sleep at.
  */
-void checkAndSleep(tm *timeinfo) {
+void checkAndSleep(tm *timeinfo, uint8_t wakeHour = 6, uint8_t sleepHour = 21) {
     int currentHour = timeinfo->tm_hour;
     int currentMinute = timeinfo->tm_min;
     int currentSecond = timeinfo->tm_sec;
 
-    int wakeHour = 6;  // 6 AM
-    int sleepStartHour = 21;  // 5 PM
+    if (wakehour >= sleepHour) {
+      debugln("Invalid wakeHour and sleepHour values.");
+      return;
+    }
+
+    if (wakeHour > 24 || sleepHour > 24 || wakeHour < 0 || sleepHour < 0) {
+      debugln("Invalid wakeHour and sleepHour values.");
+      return;
+    }
 
     // Check if the current time is between 5 PM and 6 AM
-    if (currentHour >= sleepStartHour || currentHour < wakeHour) {
+    if (currentHour >= sleepHour || currentHour < wakeHour) {
       int sleepDuration = 0;  // in seconds
 
-      if (currentHour >= sleepStartHour) {
+      if (currentHour >= sleepHour) {
           // Current time is after 5 PM, calculate time until midnight
           sleepDuration = (24 - currentHour + wakeHour) * 3600 - currentMinute * 60 - currentSecond;
       } else {
@@ -222,6 +233,11 @@ const char* send(HTTPClient* https, NetworkInfo* network, const char* timestamp)
 
 /**
  * Check if the website is reachable before trying to communicate further.
+ * @param https: HTTPClient object to use for the request.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param timestamp: The timestamp to use for the request header.
+ * 
+ * @return True if the website is reachable, false otherwise.
  */
 bool websiteReachable(HTTPClient* https, NetworkInfo* network, const char* timestamp) {
   size_t length = strlen(network->HOST) + strlen(network->routes.INDEX) + 1;
@@ -248,6 +264,10 @@ bool websiteReachable(HTTPClient* https, NetworkInfo* network, const char* times
 
 /**
  * Send statuses of sensors to HOST on specified PORT. 
+ * @param https: HTTPClient object to use for the request.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param stat: Sensors::Status struct to hold the status of the sensors.
+ * @param timestamp: The timestamp to use for the request header.
  */
 void sendStats(HTTPClient* https, NetworkInfo* network, Sensors::Status *stat, const char* timestamp) {
     debugln("\n[STATUS]");
@@ -287,6 +307,9 @@ void sendStats(HTTPClient* https, NetworkInfo* network, Sensors::Status *stat, c
 
 /**
  * Send readings from weather sensors to HOST on specified PORT. 
+ * @param https: HTTPClient object to use for the request.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param readings: Reading struct to hold the readings from the sensors.
  */
 void sendReadings(HTTPClient* https, NetworkInfo* network, Reading* readings) {
   debugln("\n[READING]");
@@ -338,6 +361,8 @@ void sendReadings(HTTPClient* https, NetworkInfo* network, Reading* readings) {
 
 /**
  * Parse the QNH from the server response.
+ * @param json: The JSON response from the server.
+ * @return The QNH value in hPa.
  */
 double parseQNH(const char* json) {
   JsonDocument doc;
@@ -358,7 +383,9 @@ double parseQNH(const char* json) {
 
 /**
  * Get the Sea Level Pressure from the server.
- */
+ * @param network: NetworkInfo struct to hold network details.
+ * @return The Sea Level Pressure in hPa.
+*/
 double getQNH(NetworkInfo* network) {
   debugln("\n[GETTING SEA LEVEL PRESSURE]");
 
@@ -419,6 +446,11 @@ double getQNH(NetworkInfo* network) {
 
 /**
  * Send image from weather station to server. 
+ * @param https: HTTPClient object to use for the request.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param buf: The image buffer to send.
+ * @param len: The length of the image buffer.
+ * @param timestamp: The timestamp to use for the request header.
  */
 void sendImage(HTTPClient* https, NetworkInfo* network, uint8_t* buf, size_t len, const char* timestamp) {
   debugln("\n[IMAGE]");
@@ -439,6 +471,9 @@ void sendImage(HTTPClient* https, NetworkInfo* network, uint8_t* buf, size_t len
 
 /**
  * Update the board firmware via the update server.
+ * This function uses the ESP8266HTTPUpdate library to update the firmware.
+ * @param network: NetworkInfo struct to hold network details.
+ * @param firmware_version: The current firmware version.
  */
 void OTAUpdate(NetworkInfo* network, const char* firmware_version) {
   debugln("\n[UPDATES]");

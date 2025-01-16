@@ -124,8 +124,10 @@ void getTime(tm *timeinfo, int timer);
  * Check if the current time is between 5 PM and 6 AM.
  * If so, enter deep sleep mode until 6 AM.
  * @param timeinfo: tm struct to hold the current time information.
+ * @param wakeHour: The hour to wake up at.
+ * @param sleepHour: The hour to sleep at.
  */
-void checkAndSleep(tm *timeinfo);
+void checkAndSleep(tm *timeinfo, uint8_t wakeHour = 6, uint8_t sleepHour = 21);
 
 /**
  * Connect to wifi Network and apply SSL certificate.
