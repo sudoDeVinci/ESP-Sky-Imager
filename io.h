@@ -34,6 +34,9 @@
 #define CACHE_FILE "/cache.json"
 #define NETWORK_FILE "/networks.json"
 
+/**
+ * Struct to store some cached information.
+ */
 struct cacheUpdate {
   const double value;
   const char* timestamp;
