@@ -1,7 +1,5 @@
 # SkyDeVision Sky Imaging Station
-
 [![Compile](https://github.com/sudoDeVinci/ESP-Sky-Imager/actions/workflows/compile.yml/badge.svg?branch=main)](https://github.com/sudoDeVinci/ESP-Sky-Imager/actions/workflows/compile.yml)
-
 ![Doxygen](/images/doxygen_badge.svg)
 
 The ESP32S3-based low-cost sky imaging station.
@@ -101,7 +99,3 @@ The station seamlessly adapts to changing network conditions:
 3. Flash the firmware to your ESP32-S3 device
 4. Place the device in a weather-protected enclosure with the camera facing the sky
 5. The system will automatically connect, calibrate, and begin operation
-
-## License
-
-This project is licensed under the Business Source License - see the [LICENSE](/LICENSE) file for details.
