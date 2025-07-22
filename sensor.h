@@ -71,6 +71,48 @@ struct Sensor {
             }
             vTaskDelay(I2C_DELAY_MS);
         }
+        
+        /**
+         * Writes a command to the sensor.
+         * The command is a 16-bit value split into two bytes.
+         * @param cmd The command to write, represented as a 16-bit unsigned integer.
+         */
+        void writeCommand(uint16_t cmd) const {
+            std::array<uint8_t, 2> cmdBytes = {
+                static_cast<uint8_t>(cmd >> 8), // High byte
+                static_cast<uint8_t>(cmd & 0xFF) // Low byte
+            };
+
+            UniqueTimedMutex lock(i2cMutex, std::defer_lock);
+            if (lock.try_lock_for(I2C_TIMEOUT_MS)) {
+                wire.beginTransmission(this->address);
+                wire.write(cmdBytes.data(), cmdBytes.size());
+                wire.endTransmission();
+            } else {
+                // TODO: Some logging - will handle later after base functionality is working
+            }
+
+            vTaskDelay(I2C_DELAY_MS);
+        }
+
+        /**
+         * Performs a CRC8 calculation on the supplied values.
+         * @param data  Pointer to the data to use when calculating the CRC8.
+         * @param len   The number of bytes in 'data'.
+         * @return The computed CRC8 value.
+         */
+        uint8_t crc8(const uint8_t *data, int len) const {
+            const uint8_t POLYNOMIAL(0x31);
+            uint8_t crc(0xFF);
+
+            for (int j = len; j; --j) {
+                crc ^= *data++;
+                for (int i = 8; i; --i) {
+                    crc = (crc & 0x80) ? (crc << 1) ^ POLYNOMIAL : (crc << 1);
+                }
+            }
+            return crc;
+        }
 
         /**
          * Find the mean of an array of numerical type T.
@@ -136,7 +178,7 @@ struct Sensor {
 
             float sum = 0.0f;
             for (const T& num : vec) {
-                sum += (num - meanValue) * (num - meanValue);
+                sum += (num - mval) * (num - mval);
             }
             return sqrt(sum / (float)vec.size());
         }
