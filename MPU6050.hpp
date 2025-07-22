@@ -1,7 +1,7 @@
 #ifndef MPU6050_H
 #define MPU6050_H
 
-#include "sensor.h"
+#include "sensor.hpp"
 #include <Wire.h>
 #include <array>
 #include <unordered_map>

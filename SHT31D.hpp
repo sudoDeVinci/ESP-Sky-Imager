@@ -1,7 +1,7 @@
 #ifndef SHT31D_H
 #define SHT31D_H
 
-#include "sensor.h"
+#include "sensor.hpp"
 #include <Wire.h>
 #include <array>
 #include <unordered_map>

@@ -1,5 +1,5 @@
 #include <Wire.h>
-#include "SHT31D.h"
+#include "SHT31D.hpp"
 
 
 void setup() {
