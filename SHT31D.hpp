@@ -148,7 +148,7 @@ public:
      * processes the data, and updates the internal temperature and humidity values.
      * @return True if the read was successful, false otherwise.
      */
-    bool readTempHum(void) {
+    bool update(void) {
         writeCommand(MEDREP);
         uint8_t readbuffer[6] = {0, 0, 0, 0, 0, 0};
         vTaskDelay(20 / portTICK_PERIOD_MS);

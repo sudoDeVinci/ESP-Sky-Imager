@@ -8,7 +8,7 @@ void setup() {
 
     SHT31 sensor(SHT31_ADDRESS, 400000, true, Wire);
     
-    if (sensor.readTempHum()) {
+    if (sensor.update()) {
         Serial.print("Temperature: ");
         Serial.print(sensor.getTemperature());
         Serial.println(" °C");
