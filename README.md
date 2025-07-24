@@ -1,5 +1,5 @@
 # SkyDeVision Sky Imaging Station
-[![Compile](https://github.com/sudoDeVinci/ESP-Sky-Imager/actions/workflows/compile.yml/badge.svg?branch=main)](https://github.com/sudoDeVinci/ESP-Sky-Imager/actions/workflows/compile.yml)
+[![Compile](https://github.com/sudoDeVinci/ESP-Sky-Imager/actions/workflows/compile.yml/badge.svg?branch=revamp)](https://github.com/sudoDeVinci/ESP-Sky-Imager/actions/workflows/compile.yml)
 ![Doxygen](/images/doxygen_badge.svg)
 
 The ESP32S3-based low-cost sky imaging station.

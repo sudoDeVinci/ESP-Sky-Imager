@@ -1,41 +1,95 @@
-#ifndef SENSOR_H
-#define SENSOR_H
+#pragma once
 
 #include <Wire.h>
+#include "I2CManager.hpp"
 #include <array>
 #include <vector>
 #include <algorithm>
+#include <numeric>
 #include <cmath>
 #include <chrono>
 #include <mutex>
 
+
 using UniqueTimedMutex = std::unique_lock<std::timed_mutex>;
 
-/**
- * Base class for I2C sensors.
- * Designed to be used with the ESP32 platform and the Arduino framework.
- * It includes methods for writing to registers, calculating statistics, and handling outliers.
- * Meant to be thread-safe with a timed mutex for I2C communication.
- */
-struct Sensor {
 
+class I2CSensor {
+    public:
+
+        virtual bool init() {
+            if (!I2CManager::getInstance().registerSensor(*this)) {
+                _is_initialized = false;
+                return false;
+            }
+            
+            if (!deviceSpecificSetup()) {
+                _is_initialized = false;
+                return false;
+            }
+
+            _is_initialized = true;
+            return true;
+        }
+    
+       /**
+        * Pure virtual function to be implemented by derived sensor classes.
+        * This function is called periodically to update the sensor's readings.
+        * Only some sensors do this - other returnthe reading on demand.
+        */
+        virtual bool update(void) = 0;
+    
+        uint8_t getAddress() const { return _i2c_addr; }
+        int getBusNum() const { return _bus_num; }
+        int getSdaPin() const { return _sda_pin; }
+        int getSclPin() const { return _scl_pin; }
+        uint32_t getMinClock() const { return _min_clock_hz; }
+        uint32_t getMaxClock() const { return _max_clock_hz; }
+        bool isInitialized() const { return _is_initialized; }
+        void setWire(TwoWire* wire) { _wire = wire; }
+    
     protected:
-        mutable std::timed_mutex i2cMutex;
+
+        I2CSensor(
+            uint8_t addr,
+            uint8_t bus_num,
+            uint8_t sda,
+            uint8_t scl,
+            uint32_t min_clk,
+            uint32_t max_clk)
+            :
+            _i2c_addr(addr),
+            _bus_num(bus_num),
+            _sda_pin(sda),
+            _scl_pin(scl),
+            _min_clock_hz(min_clk),
+            _max_clock_hz(max_clk) {}
+    
+        /**
+         * Pure virtual function to be implemented by derived sensor classes.
+         * This function is called during initialization to perform device-specific setup.
+         * @return True if the setup is successful, false otherwise.
+         */
+        virtual bool deviceSpecificSetup() = 0;
+    
+        bool _is_initialized = false;
+        uint8_t _i2c_addr;
+        uint8_t _bus_num;
+        uint8_t _sda_pin;
+        uint8_t _scl_pin;
+        uint32_t _min_clock_hz;
+        uint32_t _max_clock_hz;
+        mutable std::timed_mutex _i2cMutex;
         static constexpr std::chrono::milliseconds I2C_TIMEOUT_MS{100};
         static constexpr TickType_t I2C_DELAY_MS = 5 / portTICK_PERIOD_MS;
         static constexpr TickType_t I2C_INIT_DELAY_MS = 250 / portTICK_PERIOD_MS;
 
-    public:
+        /**
+         * Pointer to the TwoWire instance used for I2C communication.
+         * This will be set during registration.
+         */
+        TwoWire* _wire = nullptr;
 
-        /**The address of the sensor in hex.*/
-        uint16_t address;
-        /**The clock speed of the sensor in Hz.*/
-        uint32_t clk;
-        /**Reference to the TwoWire instance to use for I2C communication.*/
-        TwoWire& wire;
-
-        Sensor(uint16_t address, uint32_t clk, TwoWire& wireInstance = Wire)
-            : address(address), clk(clk), wire(wireInstance) {}
 
         /**
          * Writes a single byte to the specified register.
@@ -43,12 +97,12 @@ struct Sensor {
          * @param value The byte value to write.
          */
         void writeToReg(uint8_t reg, uint8_t value) const {
-            UniqueTimedMutex lock(i2cMutex, std::defer_lock);
+            UniqueTimedMutex lock(_i2cMutex, std::defer_lock);
             if (lock.try_lock_for(I2C_TIMEOUT_MS)) {
-                wire.beginTransmission(address);
-                wire.write(reg);
-                wire.write(value);
-                wire.endTransmission();
+                _wire->beginTransmission(_i2c_addr);
+                _wire->write(reg);
+                _wire->write(value);
+                _wire->endTransmission();
             } else {
                 // TODO: Some logging - will handle later after base functionality is working
             }
@@ -61,11 +115,11 @@ struct Sensor {
          * @param reg The register address to write to.
          */
         void writeToReg(uint8_t reg) const {
-            UniqueTimedMutex lock(i2cMutex, std::defer_lock);
+            UniqueTimedMutex lock(_i2cMutex, std::defer_lock);
             if (lock.try_lock_for(I2C_TIMEOUT_MS)) {
-                wire.beginTransmission(address);
-                wire.write(reg);
-                wire.endTransmission();
+                _wire->beginTransmission(_i2c_addr);
+                _wire->write(reg);
+                _wire->endTransmission();
             } else {
                 // TODO: Some logging - will handle later after base functionality is working
             }
@@ -83,11 +137,11 @@ struct Sensor {
                 static_cast<uint8_t>(cmd & 0xFF) // Low byte
             };
 
-            UniqueTimedMutex lock(i2cMutex, std::defer_lock);
+            UniqueTimedMutex lock(_i2cMutex, std::defer_lock);
             if (lock.try_lock_for(I2C_TIMEOUT_MS)) {
-                wire.beginTransmission(this->address);
-                wire.write(cmdBytes.data(), cmdBytes.size());
-                wire.endTransmission();
+                _wire->beginTransmission(_i2c_addr);
+                _wire->write(cmdBytes.data(), cmdBytes.size());
+                _wire->endTransmission();
             } else {
                 // TODO: Some logging - will handle later after base functionality is working
             }
@@ -121,10 +175,7 @@ struct Sensor {
          */
         template <typename T, size_t N>
         float mean(const std::array<T, N> &arr) const {
-            long sum = 0;
-            for (size_t i = 0; i < N; ++i) {
-                sum += arr[i];
-            }
+            long sum = std::accumulate(arr.begin(), arr.end(), 0L);
             return sum / (float)N;
         }
 
@@ -135,11 +186,7 @@ struct Sensor {
          */
         template <typename T>
         float mean(const std::vector<T> &vec) const {
-            long sum = 0;
-            for (const T& num : vec) {
-                sum += num;
-            }
-
+            long sum = std::accumulate(vec.begin(), vec.end(), 0L);
             return sum / (float)vec.size();
         }
 
@@ -240,11 +287,16 @@ struct Sensor {
 
             std::vector<T> filtered;
             filtered.reserve(N);
-            for (size_t i = 0; i < N; ++i) {
-                if (arr[i] >= lower_bound && arr[i] <= upper_bound) {
-                    filtered.push_back(arr[i]);
+
+            std::copy_if(
+                arr.begin(),
+                arr.end(),
+                std::back_inserter(filtered),
+                [lower_bound, upper_bound](const T& value){
+                    return value >= lower_bound && value <= upper_bound;
                 }
-            }
+            );
+
             return filtered;
         }
 
@@ -267,14 +319,16 @@ struct Sensor {
 
             std::vector<T> filtered;
             filtered.reserve(vec.size());
-            for (const T& value : vec) {
-                if (value >= lower_bound && value <= upper_bound) {
-                    filtered.push_back(value);
+
+            std::copy_if(
+                vec.begin(),
+                vec.end(),
+                std::back_inserter(filtered),
+                [lower_bound, upper_bound](const T& value) {
+                    return value >= lower_bound && value <= upper_bound;
                 }
-            }
+            );
+
             return filtered;
         }
-};
-
-
-#endif
+    };
