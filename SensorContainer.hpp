@@ -82,19 +82,19 @@ double calculateDewPoint(EnvironmentalReading& reading);
 
 
 struct SensorContainer {
-
     private:
+        SHT31D sht;
+        BMP3xx bmp;
+
+
+    public:
+        
         struct Status {
             bool SHT = false;
             bool BMP = false;
             bool WIFI = false;
         } status;
 
-        SHT31D sht;
-        BMP3xx bmp;
-
-
-    public:
         SensorContainer(
             SHT31D& shtSensor,
             BMP3xx& bmpSensor
@@ -114,6 +114,7 @@ struct SensorContainer {
         bool allDown(void) const {
             return !status.SHT && !status.BMP && !status.WIFI;
         }
+
 
         /**
          * Check if all sensors are operational.
