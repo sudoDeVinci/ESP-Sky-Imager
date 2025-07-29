@@ -93,10 +93,12 @@ struct ServerInfo {
 struct NetworkInterface {
     std::string ssid;
     std::string password;
-    WiFiClientSecure *client;
+    mutable WiFiClientSecure* wificlient;
+    mutable HTTPClient* webclient;
     tm TIMEINFO;
     IPAddress gateway;
     IPAddress DNS;
+    IPAddress ipaddr;
 
     /**
      * Set the internal clock of the ESP32 to the current time using NTP AND fill the timeinfo struct with that time.
@@ -105,5 +107,49 @@ struct NetworkInterface {
      */
     void setClock(tm& timeinfo);
 
+    /**
+     * Get the current time from the onboard clock.
+     * This function will keep trying to get the time until it succeeds or the timer runs out.
+     * It will print a dot every 150-250 milliseconds to indicate progress.
+     * If the time is not set after the timer runs out, it will print an error message.
+     * @param timeinfo: tm struct to hold the time information.
+     * @param timer: The maximum time to wait for the time to be set, in seconds.
+     * @return true if the time was successfully set, false otherwise.
+     */
+    bool NetworkInterface::getTime(tm &timeinfo, int timer);
+
+    /**
+     * Connect to the WiFi network.
+     * This function attempts to connect to the specified WiFi network using the provided SSID and password.
+     * It will retry the connection a specified number of times before giving up.
+     * 
+     * @param ssid The SSID of the WiFi network to connect to.
+     * @param password The password for the WiFi network.
+     * @param status The status object to update with the connection status.
+     * @param retryCount The number of times to retry the connection if it fails.
+     * @return true if the connection was successful, false otherwise.
+     */
+    [[nodiscard]]
+    bool connect(
+        std::string& ssid,
+        std::string& password,
+        SensorContainer::Status& status,
+        uint8_t retryCount = 20
+    );
+
     bool wifiSetup(const &SensorContainer::Status status);   
+
+    /**
+     * Send a JSON string to the server.
+     * @param webclient The HTTP client to use for the request.
+     * @param url The URL to send the JSON data to.
+     * @param jsonData The JSON data to send.
+     * @return The response from the server as a string.
+     */
+    std::string sendJson(
+        HTTPClient& webclient,
+        const std::string& url,
+        const std::string& jsonData,
+        const std::string& timestamp
+    ) const;
 };
