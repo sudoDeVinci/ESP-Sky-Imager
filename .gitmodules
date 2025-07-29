@@ -1,3 +1,0 @@
-[submodule "drivers"]
-	path = drivers
-	url = https://github.com/sudoDeVinci/ESP-Environment-Drivers
