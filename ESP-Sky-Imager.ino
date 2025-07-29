@@ -1,6 +1,6 @@
 #include <Wire.h>
-#include "SHT31D.hpp"
-#include "MPU6050.hpp"
+#include "sensors/SHT31D.hpp"
+#include "sensors/MPU6050.hpp"
 
 #define BUS0_SDA 41
 #define BUS0_SCL 42
