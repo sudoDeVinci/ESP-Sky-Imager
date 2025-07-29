@@ -93,6 +93,29 @@ struct SensorContainer {
             bool SHT = false;
             bool BMP = false;
             bool WIFI = false;
+
+            /**
+             * Convert the Status object to a string representation.
+             * This function formats the status data into a human-readable string.
+             * @return A string representation of the Status object.
+             */
+            const std::string toJson() const {
+                /**
+                 * The format is "{\"SHT\":true,\"BMP\":true,\"WIFI\":true}".
+                 * The maximum length of the string is 45 characters
+                 * We allocate 50 characters to be safe.
+                 */
+                const int strlen = 50;
+                char buffer[strlen] = "";
+                snprintf(buffer, strlen,
+                         "{\"SHT\":%s,\"BMP\":%s,\"WIFI\":%s}",
+                         SHT ? "true" : "false",
+                         BMP ? "true" : "false",
+                         WIFI ? "true" : "false"
+                );
+
+                return std::string(buffer);
+            }
         } status;
 
         SensorContainer(

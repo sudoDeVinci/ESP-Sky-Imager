@@ -19,37 +19,39 @@
 
 struct ServerInfo {
     const std::string host;
-    IPAddress GATEWAY;
-    IPAddress DNS;
+    const std::string certificate;
 
     /**
      * MIME types for the different types of packets.
      */
     struct MIMEType {
-    const std::string IMAGE_JPG = "image/jpeg";
-    const std::string APP_FORM = "application/x-www-form-urlencoded";
-    } mimetypes;
+        static constexpr const char* IMAGE_JPG = "image/jpeg";
+        static constexpr const char* APP_FORM = "application/x-www-form-urlencoded";
+        static constexpr const char* APP_JSON = "application/json";
+        static constexpr const char* APP_OCTET_STREAM = "application/octet-stream";
+        static constexpr const char* TEXT_PLAIN = "text/plain";
+    };
 
     /**
      * Routes on the Server. 
      */
     struct Route {
-        const std::string INDEX = "/";
-        const std::string IMAGE = "/api/images";
-        const std::string REGISTER = "/api/register";
-        const std::string READING = "/api/reading";
-        const std::string STATUS = "/api/status";
-        const std::string UPDATE = "/api/update";
-        const std::string UPGRADE = "/api/upgrade";
-        const std::string TEST = "/api/test";
-        const std::string QNH = "/api/QNH";
-    } routes;
+        static constexpr const char* INDEX = "/";
+        static constexpr const char* IMAGE = "/api/images";
+        static constexpr const char* REGISTER = "/api/register";
+        static constexpr const char* READING = "/api/reading";
+        static constexpr const char* STATUS = "/api/status";
+        static constexpr const char* UPDATE = "/api/update";
+        static constexpr const char* UPGRADE = "/api/upgrade";
+        static constexpr const char* TEST = "/api/test";
+        static constexpr const char* QNH = "/api/QNH";
+    };
 
     struct Header {
-        const std::string CONTENT_TYPE = "Content-Type";
-        const std::string CONTENT_LENGTH = "Content-Length";
-        const std::string MACADDRESS = "X-MAC-Address";
-        const std::string TIMESTAMP = "X-Timestamp";
+        static constexpr const char* CONTENT_TYPE = "Content-Type";
+        static constexpr const char* CONTENT_LENGTH = "Content-Length";
+        static constexpr const char* MACADDRESS = "X-MAC-Address";
+        static constexpr const char* TIMESTAMP = "X-Timestamp";
     };
 
     /**
@@ -91,9 +93,10 @@ struct ServerInfo {
 struct NetworkInterface {
     std::string ssid;
     std::string password;
-    std::string certificate;
-    WiFiClientSecure *CLIENT;
+    WiFiClientSecure *client;
     tm TIMEINFO;
+    IPAddress gateway;
+    IPAddress DNS;
 
     /**
      * Set the internal clock of the ESP32 to the current time using NTP AND fill the timeinfo struct with that time.
