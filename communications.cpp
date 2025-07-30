@@ -124,7 +124,7 @@ bool ServerInfo::websiteReachable(
         return true;
     }
     
-    debugf(">> Server is not reachable. HTTP code: %d\n", httpCode);  // Added \n
+    debugf(">> Server is not reachable. HTTP code: %d\n", httpCode);
     return false;
 }
 
@@ -135,8 +135,8 @@ std::string NetworkInterface::sendJson(
     const std::string& timestamp
 ) const {
     webclient.setConnectTimeout(CONN_TIMEOUT);
-    webclient.addHeader(ServerInfo::Header::CONTENT_TYPE, ServerInfo::MIMEType::APP_JSON);  // Fixed
-    webclient.addHeader(ServerInfo::Header::CONTENT_LENGTH, std::to_string(jsonData.length()));  // Fixed
+    webclient.addHeader(ServerInfo::Header::CONTENT_TYPE, ServerInfo::MIMEType::APP_JSON);
+    webclient.addHeader(ServerInfo::Header::CONTENT_LENGTH, std::to_string(jsonData.length()));
     webclient.addHeader(ServerInfo::Header::MACADDRESS, WiFi.macAddress().c_str());
     webclient.addHeader(ServerInfo::Header::TIMESTAMP, timestamp.c_str());
 
