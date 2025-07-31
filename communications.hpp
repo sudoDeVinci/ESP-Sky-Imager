@@ -1,5 +1,6 @@
 #pragma once
 
+#include "io.h"
 #include "SensorContainer.hpp"
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -20,6 +21,13 @@
 struct ServerInfo {
     const std::string host;
     const std::string certificate;
+    const std::string apikey;
+
+    ServerInfo(
+        const std::string& host = "",
+        const std::string& certificate = "",
+        const std::string& apikey = ""
+    ): host(host), certificate(certificate), apikey(apikey) {}
 
     /**
      * MIME types for the different types of packets.
@@ -87,6 +95,8 @@ struct ServerInfo {
         const EnvironmentalReading& reading,
         const SensorContainer::Status& status
     ) const;
+
+    double getQNH(NetworkInterface& netIntf) const;
 };
 
 
@@ -99,6 +109,12 @@ struct NetworkInterface {
     IPAddress gateway;
     IPAddress DNS;
     IPAddress ipaddr;
+
+    NetworkInterface(
+        const std::string& ssid = "",
+        const std::string& password = ""
+    ): ssid(ssid), password(password){}
+
 
     /**
      * Set the internal clock of the ESP32 to the current time using NTP AND fill the timeinfo struct with that time.
@@ -153,3 +169,6 @@ struct NetworkInterface {
         const std::string& timestamp
     ) const;
 };
+
+
+

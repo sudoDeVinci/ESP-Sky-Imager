@@ -40,7 +40,7 @@ struct EnvironmentalReading {
      * Each double value is formatted to 4 decimal places.
      * * @return A string representation of the Reading object.
      */
-    const std::string toString() const {
+    const std::string toString(void) const {
 
         /**
          * An ISO 8601 timestamp is at most a 30 character string.
@@ -59,6 +59,32 @@ struct EnvironmentalReading {
 
         snprintf(buffer, strlen,
                  "%s, %.4f, %.4f, %.4f, %.4f, %.4f",
+                 timestamp.c_str(),
+                 humidity,
+                 temperature,
+                 pressure,
+                 altitude,
+                 dewpoint
+        );
+
+        return std::string(buffer);
+    }
+
+    /**
+     * Convert the Reading object to a JSON string representation.
+     * This function formats the reading data into a JSON string.
+     * @return A JSON string representation of the Reading object.
+     */
+    const std::string toJson(void) const {
+        /**
+         * The format is: "{\"timestamp\":\"2023-10-01T12:00:00Z\",\"humidity\":50.0,\"temperature\":20.0,\"pressure\":1013.25,\"altitude\":100.0,\"dewpoint\":15.0}"
+         * The maximum length of the string is 150 characters.
+         * We allocate 200 characters to be safe.
+         */
+        const int strlen = 200;
+        char buffer[strlen] = "";
+        snprintf(buffer, strlen,
+                 "{\"timestamp\":\"%s\",\"humidity\":%.4f,\"temperature\":%.4f,\"pressure\":%.4f,\"altitude\":%.4f,\"dewpoint\":%.4f}",
                  timestamp.c_str(),
                  humidity,
                  temperature,
@@ -171,6 +197,5 @@ struct SensorContainer {
          * and calculates the dew point.
          */
         EnvironmentalReading& read(void) const;
-
 };
 

@@ -30,6 +30,14 @@
 #define NETWORK_FILE "/networks.json"
 
 
+// Forward references to classes to avoid circular dependencies
+struct ServerInfo;
+struct NetworkInterface;
+struct EnvironmentalReading;
+struct SensorContainer;
+struct SensorContainer::Status;
+
+
 /**
  * @brief A struct to represent a timestamped cache update.
  * This class is used to store data and its associated timestamp for cache updates.
@@ -53,11 +61,13 @@ struct CacheUpdate {
 
 std::string formatTime(const tm& now);
 
+
 /**
  * Attempt to initialize the sdcard file system. 
  * @return True if the sdcard was successfully mounted, false otherwise.
  */
 bool sdmmcInit(void);
+
 
 /**
  * Determine the file system to use based on the SD card status.
@@ -65,17 +75,20 @@ bool sdmmcInit(void);
  */
 fs::FS& determineFileSystem(void);
 
+
 /**
  * Initialize the log file in the specified file system.
  * @param fs The file system to use for logging.
  */
 void initLogfile(fs::FS& fs);
 
+
 /**
  * Initialize the cache file. 
  * @param fs: The file system reference to use for the cache.
  */ 
 void initCachefile(fs::FS& fs);
+
 
 /**
  * @brief   Read the contents of a file from the specified file system.
@@ -85,6 +98,7 @@ void initCachefile(fs::FS& fs);
  * @return  The contents of the file as a string.
  */
 std::string readFile(fs::FS& fs, const std::string& path);
+
 
 /**
  * @brief Update the cache with a new data entry.
@@ -128,5 +142,47 @@ inline void updateCache(fs::FS& fs, const CachUpdate<T>& update) {
     file.close();
     debugf("Cache file %s updated with field %s.\n", CACHE_FILE, update.field.c_str());
 }
+
+
+/**
+ * @brief Write a new log entry to the log file.
+ * @param fs The file system to use for the log.
+ * @param reading The EnvironmentalReading object containing sensor data.
+ * @return True if the log was successfully updated, false otherwise.
+ */
+[[nodiscard]]
+bool writeLog(fs::FS& fs, const EnvironmentalReading& reading);
+
+
+/**
+ * Convert a JsonArray to a vector of EnvironmentalReading objects.
+ * @param jsonarray The JsonArray to convert.
+ * @return A vector of EnvironmentalReading objects.
+ */
+std::vector<EnvironmentalReading> arrayFromJson(const JsonArray jsonarray);
+
+
+/**
+ * Convert a JsonArray to a vector of SensorContainer::Status objects.
+ * @param jsonarray The JsonArray to convert.
+ * @return A vector of SensorContainer::Status objects.
+ */
+std::vector<SensorContainer::Status> statusFromJson(const JsonArray jsonarray);
+
+
+/**
+ * Load server information from a JSON file.
+ * @param fs The file system to read the server info from.
+ * @return A ServerInfo object containing the host, certificate, and API key.
+ */
+const ServerInfo loadServerInfo(fs::FS& fs);
+
+
+
+
+
+
+
+
 
 

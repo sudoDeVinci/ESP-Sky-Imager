@@ -128,6 +128,11 @@ bool ServerInfo::websiteReachable(
     return false;
 }
 
+/**
+ * Some a JSON string to the server as a POST request.
+ * @param webclient The HTTP client to use for the request.
+ * @param url The URL to send the JSON data to.
+ */
 std::string NetworkInterface::sendJson(
     HTTPClient& webclient,
     const std::string& url,
