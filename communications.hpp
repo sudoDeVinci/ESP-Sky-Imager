@@ -106,14 +106,21 @@ struct NetworkInterface {
     mutable WiFiClientSecure* wificlient;
     mutable HTTPClient* webclient;
     tm TIMEINFO;
-    IPAddress gateway;
-    IPAddress DNS;
-    IPAddress ipaddr;
 
     NetworkInterface(
         const std::string& ssid = "",
         const std::string& password = ""
     ): ssid(ssid), password(password){}
+
+
+    /**
+     * Check if two structs are equal.
+     */
+    bool operator==(const NetworkInterface& other) const {
+        return (this->ssid == other.ssid &&
+                this->password == other.password
+            );
+    }
 
 
     /**
@@ -169,6 +176,5 @@ struct NetworkInterface {
         const std::string& timestamp
     ) const;
 };
-
 
 

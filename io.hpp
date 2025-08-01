@@ -25,9 +25,10 @@
 #define SD_MMC_CLK  39
 #define SD_MMC_D0   40
 
-#define LOG_FILE "/log.json"
-#define CACHE_FILE "/cache.json"
-#define NETWORK_FILE "/networks.json"
+#define LOG_FILE "//log.json"
+#define CACHE_FILE "//cache.json"
+#define SERVER_FILE "//server.json"
+#define NETWORKS_FILE "//networks.json"
 
 
 // Forward references to classes to avoid circular dependencies
@@ -168,20 +169,6 @@ std::vector<EnvironmentalReading> arrayFromJson(const JsonArray jsonarray);
  * @return A vector of SensorContainer::Status objects.
  */
 std::vector<SensorContainer::Status> statusFromJson(const JsonArray jsonarray);
-
-
-/**
- * Load server information from a JSON file.
- * @param fs The file system to read the server info from.
- * @return A ServerInfo object containing the host, certificate, and API key.
- */
-const ServerInfo loadServerInfo(fs::FS& fs);
-
-
-
-
-
-
 
 
 

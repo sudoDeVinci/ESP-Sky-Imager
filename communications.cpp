@@ -160,3 +160,57 @@ std::string NetworkInterface::sendJson(
     webclient.end();
     return response;
 }
+
+
+bool NetworkInterface::wifiSetup(fs::FS& fs, const &SensorContainer::Status status) {
+    WiFi.mode(WIFI_STA);
+    WiFi.setSleep(false);
+    WiFi.disconnect();
+
+    const std::string nwinfo = readFile(fs, NETWORKS_FILE);
+    if (nwinfo.empty()) {
+        debugln("No network information found. Please set up the WiFi network.");
+        return false;
+    }
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, nwinfo);
+    if (error) {
+        debugf("Failed to parse network file: %s\n", error.c_str());
+        return false;
+    }
+
+    const JsonArray networks = doc["networks"];
+    int netcount = WiFi.scanNetworks();
+}
+
+
+/**
+ * Load server information from a JSON file.
+ * @param fs The file system to read the server info from.
+ * @return A ServerInfo object containing the host, certificate, and API key.
+ */
+const ServerInfo loadServerInfo(fs::FS& fs) {
+    std::string content = readFile(fs, SERVER_FILE);
+    if (content.empty()) {
+        debugln("Server info file is empty or could not be read.");
+        return ServerInfo();
+    }
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, content);
+    if (error) {
+        debugf("Failed to parse server info file: %s\n", error.c_str());
+        return ServerInfo();
+    }
+
+    std::string host = doc["host"].as<std::string>();
+    std::string certificate = doc["certificate"].as<std::string>();
+    std::string apikey = doc["apikey"].as<std::string>();
+
+    return ServerInfo(host, certificate, apikey);
+}
+
+
+
+
