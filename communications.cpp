@@ -13,12 +13,13 @@
  * @return true if the connection was successful, false otherwise.
  */
 [[nodiscard]]
-bool NetworkInterface::connect(
-    std::string& ssid,
-    std::string& password,
+bool WifiSpec::connect(
+    const std::string& ssid,
+    const std::string& password,
     SensorContainer::Status& status,
-    uint8_t retryCount = 20
+    uint8_t retryCount
 ) {
+    debugf("Connecting to WiFi network: %s\n", ssid.c_str());
     WiFi.begin(ssid.c_str(), password.c_str());
     uint8_t connectCount = 0;
     while (WiFi.status() != WL_CONNECTED && connectCount < retryCount) {
@@ -41,11 +42,54 @@ bool NetworkInterface::connect(
 
     this->ssid = ssid;
     this->password = password;
-    this->gateway = WiFi.gatewayIP();
-    this->DNS = WiFi.dnsIP();
-    this->ipaddr = WiFi.localIP();
     return true;
 }
+
+
+/**
+ * @brief Read from the known networks json file and connect to the first matching network.
+ * @param fs The filesystem to read the network information from.
+ * @param status The status object to update with the connection status.
+ * @return true if a network was found and connected to, false otherwise.
+ */
+bool WifiSpec::wifiConnectionSetup(fs::FS& fs, SensorContainer::Status& status) {
+    WiFi.mode(WIFI_STA);
+    WiFi.setSleep(false);
+    WiFi.disconnect();
+
+    const std::string nwinfo = readFile(fs, NETWORKS_FILE);
+    if (nwinfo.empty()) {
+        debugln("No network information found. Please set up the WiFi network.");
+        return false;
+    }
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, nwinfo);
+    if (error) {
+        debugf("Failed to parse network file: %s\n", error.c_str());
+        return false;
+    }
+
+    const JsonArray networks = doc["networks"];
+    int netcount = WiFi.scanNetworks();
+
+    for (int i = 0; i < netcount; i++) {
+        std::string ssid = std::string(WiFi.SSID(i).c_str());
+        for (JsonVariant netJson : networks) {
+            std::string netssid = netJson["SSID"];
+            std::string netpwd = netJson["PASS"];
+            if (ssid == netssid) {
+                debugf("Connecting to WiFi network %s", netssid.c_str());
+                if (connect(netssid, netpwd, status, RETRY_COUNT)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 
 
 /**
@@ -57,7 +101,7 @@ bool NetworkInterface::connect(
  * @param timer: The maximum time to wait for the time to be set, in seconds.
  * @return true if the time was successfully set, false otherwise.
  */
-bool NetworkInterface::getTime(tm &timeinfo, int timer) {
+bool WifiSpec::getTime(tm &timeinfo, int timer) {
     uint32_t start = millis();
     time_t now;
     debug("Getting time!");
@@ -85,7 +129,7 @@ bool NetworkInterface::getTime(tm &timeinfo, int timer) {
  * Big thanks to Andreas Spiess.
  * @param timeinfo: tm struct to hold the time information.
  */
-void NetworkInterface::setClock(tm& timeinfo) {
+void WifiSpec::setClock(tm& timeinfo) {
     configTime(0, 0, "pool.ntp.org");
     debug(F("Waiting for NTP time sync: "));
     time_t nowSecs = time(nullptr);
@@ -107,9 +151,10 @@ void NetworkInterface::setClock(tm& timeinfo) {
  * @param netIntf The network interface settings to use for the request.
  * @return true if the server is reachable, false otherwise.
  */
+[[nodiscard]]
 bool ServerInfo::websiteReachable(
     HTTPClient& webclient,
-    NetworkInterface& netIntf
+    WifiSpec& netIntf
 ) const {
     size_t length = this->host.length() + strlen(Route::INDEX) + 10;
     char url[length];
@@ -130,10 +175,13 @@ bool ServerInfo::websiteReachable(
 
 /**
  * Some a JSON string to the server as a POST request.
- * @param webclient The HTTP client to use for the request.
  * @param url The URL to send the JSON data to.
+ * @param webclient The HTTP client to use for the request.
+ * @param jsonData The JSON data to send.
+ * @param timestamp The timestamp to include in the request headers.
+ * @return The response from the server as a string.
  */
-std::string NetworkInterface::sendJson(
+std::string WifiSpec::sendJson(
     HTTPClient& webclient,
     const std::string& url,
     const std::string& jsonData,
@@ -141,7 +189,7 @@ std::string NetworkInterface::sendJson(
 ) const {
     webclient.setConnectTimeout(CONN_TIMEOUT);
     webclient.addHeader(ServerInfo::Header::CONTENT_TYPE, ServerInfo::MIMEType::APP_JSON);
-    webclient.addHeader(ServerInfo::Header::CONTENT_LENGTH, std::to_string(jsonData.length()));
+    webclient.addHeader(ServerInfo::Header::CONTENT_LENGTH, std::to_string(jsonData.length()).c_str());
     webclient.addHeader(ServerInfo::Header::MACADDRESS, WiFi.macAddress().c_str());
     webclient.addHeader(ServerInfo::Header::TIMESTAMP, timestamp.c_str());
 
@@ -161,55 +209,6 @@ std::string NetworkInterface::sendJson(
     return response;
 }
 
-
-bool NetworkInterface::wifiSetup(fs::FS& fs, const &SensorContainer::Status status) {
-    WiFi.mode(WIFI_STA);
-    WiFi.setSleep(false);
-    WiFi.disconnect();
-
-    const std::string nwinfo = readFile(fs, NETWORKS_FILE);
-    if (nwinfo.empty()) {
-        debugln("No network information found. Please set up the WiFi network.");
-        return false;
-    }
-
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, nwinfo);
-    if (error) {
-        debugf("Failed to parse network file: %s\n", error.c_str());
-        return false;
-    }
-
-    const JsonArray networks = doc["networks"];
-    int netcount = WiFi.scanNetworks();
-}
-
-
-/**
- * Load server information from a JSON file.
- * @param fs The file system to read the server info from.
- * @return A ServerInfo object containing the host, certificate, and API key.
- */
-const ServerInfo loadServerInfo(fs::FS& fs) {
-    std::string content = readFile(fs, SERVER_FILE);
-    if (content.empty()) {
-        debugln("Server info file is empty or could not be read.");
-        return ServerInfo();
-    }
-
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, content);
-    if (error) {
-        debugf("Failed to parse server info file: %s\n", error.c_str());
-        return ServerInfo();
-    }
-
-    std::string host = doc["host"].as<std::string>();
-    std::string certificate = doc["certificate"].as<std::string>();
-    std::string apikey = doc["apikey"].as<std::string>();
-
-    return ServerInfo(host, certificate, apikey);
-}
 
 
 

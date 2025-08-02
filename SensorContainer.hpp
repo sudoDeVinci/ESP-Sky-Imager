@@ -1,5 +1,6 @@
 #pragma once
 
+#include "io.hpp"
 #include "drivers/SHT31D.hpp"
 #include "drivers/BMP3xx.hpp"
 #include "camera_pins.h"
@@ -108,11 +109,6 @@ double calculateDewPoint(EnvironmentalReading& reading);
 
 
 struct SensorContainer {
-    private:
-        SHT31D sht;
-        BMP3xx bmp;
-
-
     public:
         
         struct Status {
@@ -144,14 +140,7 @@ struct SensorContainer {
             }
         } status;
 
-        SensorContainer(
-            SHT31D& shtSensor,
-            BMP3xx& bmpSensor
-        ): sht(shtSensor), bmp(bmpSensor
-        ){
-            status.SHT = sht.isInitialized();
-            status.BMP = bmp.isInitialized();
-        }
+        SensorContainer(void){;}
 
         /**
          * Check if all sensors are down.
@@ -161,7 +150,7 @@ struct SensorContainer {
          * @return true if all sensors are down, false otherwise.
          */
         bool allDown(void) const {
-            return !status.SHT && !status.BMP && !status.WIFI;
+            return !status.SHT && !status.WIFI;
         }
 
 
@@ -173,29 +162,22 @@ struct SensorContainer {
          * @return true if all sensors are operational, false otherwise.
          */
         bool allUp(void) const {
-            return status.SHT && status.BMP && status.WIFI;
+            return status.SHT && status.WIFI;
         }
-        
-        /**
-         * Read the sensors and populate the EnvironmentalReading object.
-         */
-        void readBMP(EnvironmentalReading& reading, double qnh) const;
-
-        /**
-         * Read the SHT sensor and populate the EnvironmentalReading object.
-         * This function reads the humidity and temperature from the SHT sensor.
-         * It also calculates the dew point based on the humidity and temperature.
-         * 
-         * @param reading The EnvironmentalReading object to populate with sensor data.
-         */
-        void readSHT(EnvironmentalReading& reading) const;
-
-        /**
-         * Read all sensors and return an EnvironmentalReading object.
-         * This function reads data from both the SHT and BMP sensors,
-         * populates an EnvironmentalReading object with the data,
-         * and calculates the dew point.
-         */
-        EnvironmentalReading& read(void) const;
 };
 
+/**
+ * Convert a JsonArray to a vector of EnvironmentalReading objects.
+ * @param jsonarray The JsonArray to convert.
+ * @return A vector of EnvironmentalReading objects.
+ */
+std::vector<EnvironmentalReading> arrayFromJson(const JsonArray jsonarray);
+
+/**
+ * @brief Write a new log entry to the log file.
+ * @param fs The file system to use for the log.
+ * @param reading The EnvironmentalReading object containing sensor data.
+ * @return True if the log was successfully updated, false otherwise.
+ */
+[[nodiscard]]
+bool writeLog(fs::FS& fs, const EnvironmentalReading& reading);

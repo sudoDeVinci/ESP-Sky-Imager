@@ -1,14 +1,16 @@
 #pragma once
 
 #include <ArduinoJson.h>
-#include <vector>
-#include <array>
 #include "FS.h"
 #include <LittleFS.h>
 #include "SD_MMC.h"
+#include <vector>
+#include <array>
 #include <cstdint>
 #include <string>
 #include <time.h>
+
+#define DEUBG 1
 
 #ifdef DEBUG
     #define debug(...) Serial.print(__VA_ARGS__)
@@ -29,14 +31,6 @@
 #define CACHE_FILE "//cache.json"
 #define SERVER_FILE "//server.json"
 #define NETWORKS_FILE "//networks.json"
-
-
-// Forward references to classes to avoid circular dependencies
-struct ServerInfo;
-struct NetworkInterface;
-struct EnvironmentalReading;
-struct SensorContainer;
-struct SensorContainer::Status;
 
 
 /**
@@ -107,7 +101,7 @@ std::string readFile(fs::FS& fs, const std::string& path);
  * @param update The cache update containing data and timestamp.
  */
 template <typename T>
-inline void updateCache(fs::FS& fs, const CachUpdate<T>& update) {
+inline void updateCache(fs::FS& fs, const CacheUpdate<T>& update) {
     std::string cacheContent = readFile(fs, CACHE_FILE);
     if (cacheContent.empty()) {
         debugln("Cache file is empty or could not be read.");
@@ -143,33 +137,5 @@ inline void updateCache(fs::FS& fs, const CachUpdate<T>& update) {
     file.close();
     debugf("Cache file %s updated with field %s.\n", CACHE_FILE, update.field.c_str());
 }
-
-
-/**
- * @brief Write a new log entry to the log file.
- * @param fs The file system to use for the log.
- * @param reading The EnvironmentalReading object containing sensor data.
- * @return True if the log was successfully updated, false otherwise.
- */
-[[nodiscard]]
-bool writeLog(fs::FS& fs, const EnvironmentalReading& reading);
-
-
-/**
- * Convert a JsonArray to a vector of EnvironmentalReading objects.
- * @param jsonarray The JsonArray to convert.
- * @return A vector of EnvironmentalReading objects.
- */
-std::vector<EnvironmentalReading> arrayFromJson(const JsonArray jsonarray);
-
-
-/**
- * Convert a JsonArray to a vector of SensorContainer::Status objects.
- * @param jsonarray The JsonArray to convert.
- * @return A vector of SensorContainer::Status objects.
- */
-std::vector<SensorContainer::Status> statusFromJson(const JsonArray jsonarray);
-
-
 
 
