@@ -74,3 +74,6 @@ std::vector<EnvironmentalReading> arrayFromJson(const JsonArray jsonarray) {
 
     return readings;
 }
+
+
+

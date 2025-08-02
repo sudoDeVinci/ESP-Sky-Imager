@@ -21,11 +21,10 @@
 
 
 struct WifiSpec {
+    bool isConnected = false;
     std::string ssid;
     std::string password;
-    mutable WiFiClientSecure* wificlient;
-    mutable HTTPClient* webclient;
-    tm TIMEINFO;
+    tm timeinfo;
 
     WifiSpec(
         const std::string& ssid = "",
@@ -42,13 +41,18 @@ struct WifiSpec {
             );
     }
 
+    inline bool connected(void) const {
+        return this->isConnected;
+    }
+
 
     /**
      * Set the internal clock of the ESP32 to the current time using NTP AND fill the timeinfo struct with that time.
      * Big thanks to Andreas Spiess.
      * @param timeinfo: tm struct to hold the time information.
      */
-    void setClock(tm& timeinfo);
+    void setClock(void);
+
 
     /**
      * Get the current time from the onboard clock.
@@ -59,7 +63,8 @@ struct WifiSpec {
      * @param timer: The maximum time to wait for the time to be set, in seconds.
      * @return true if the time was successfully set, false otherwise.
      */
-    bool getTime(tm &timeinfo, int timer);
+    bool getInternalTime(int timer);
+
 
     /**
      * Connect to the WiFi network.
@@ -80,7 +85,9 @@ struct WifiSpec {
         uint8_t retryCount
     );
 
+
     bool wifiConnectionSetup(fs::FS& fs, SensorContainer::Status& status);   
+
 
     /**
      * Send a JSON string to the server.
@@ -90,10 +97,14 @@ struct WifiSpec {
      * @return The response from the server as a string.
      */
     std::string sendJson(
-        HTTPClient& webclient,
         const std::string& url,
         const std::string& jsonData,
         const std::string& timestamp
+    ) const;
+
+
+    std::string getJson(
+        const std::string& url
     ) const;
 };
 
@@ -106,7 +117,10 @@ struct ServerInfo {
         const std::string& host = "",
         const std::string& certificate = "",
         const std::string& apikey = ""
-    ): host(host), certificate(certificate), apikey(apikey) {}
+    ) : certificate(certificate), 
+        apikey(apikey),
+        host(host) {
+    }
 
     /**
      * MIME types for the different types of packets.
@@ -123,15 +137,14 @@ struct ServerInfo {
      * Routes on the Server. 
      */
     struct Route {
-        static constexpr const char* INDEX = "/";
-        static constexpr const char* IMAGE = "/api/images";
+        static constexpr const char* INDEX = "/api/check";
+        static constexpr const char* IMAGE = "/api/image";
         static constexpr const char* REGISTER = "/api/register";
         static constexpr const char* READING = "/api/reading";
         static constexpr const char* STATUS = "/api/status";
         static constexpr const char* UPDATE = "/api/update";
-        static constexpr const char* UPGRADE = "/api/upgrade";
-        static constexpr const char* TEST = "/api/test";
-        static constexpr const char* QNH = "/api/QNH";
+        static constexpr const char* VERSION = "/api/version";
+        static constexpr const char* QNH = "/api/qnh";
     };
 
     struct Header {
@@ -147,7 +160,7 @@ struct ServerInfo {
      * @param netIntf The network interface settings to use for the request.
      * @return true if the server is reachable, false otherwise.
      */
-    bool websiteReachable(HTTPClient& webclient, WifiSpec& netIntf) const;
+    bool websiteReachable(void) const;
 
     /**
      * Send the status of the sensors to the server.
@@ -156,26 +169,36 @@ struct ServerInfo {
      * @param status The status of the sensors to send.
      */
     void sendStatuses(
-        HTTPClient& webclient,
         WifiSpec& netIntf,
-        const SensorContainer::Status& status
+        const SensorContainer::Status& status,
+        const tm& timeinfo 
     ) const;
 
     /**
-     * Send the readings to the server.
-     * @param webclient The HTTP client to use for the request.
+     * Send a reading to the server.
      * @param netIntf The network interface settings to use for the request.
-     * @param reading The environmental reading to send.
-     * @param status The status of the sensors to send.
+     * @param jsonData The JSON data to send.
+     * @param timeinfo The time information to include in the request.
      */
-    void sendReadings(
-        HTTPClient& webclient,
+    void sendReading(
         WifiSpec& netIntf,
-        const EnvironmentalReading& reading,
-        const SensorContainer::Status& status
+        const EnvironmentalReading& envdata,
+        const tm& timeinfo
     ) const;
 
-    double getQNH(WifiSpec& netIntf) const;
+    /**
+     * Get the QNH value from the server as JSON.
+     * @param netInf The network interface settings to use for the request.
+     * @return The QNH value as a string.
+     */
+    std::string getQnh(WifiSpec& netInf) const;
+
+    /**
+     * Get the firmware version from the server as JSON.
+     * @param netInf The network interface settings to use for the request.
+     * @return The firmware version as a string.
+     */
+    std::string getFirmwareVersion(WifiSpec& netInf) const;
 };
 
 

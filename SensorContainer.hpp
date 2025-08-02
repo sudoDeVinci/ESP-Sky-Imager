@@ -14,15 +14,26 @@
 extern unsigned long LASTPRESSED;
 
 struct EnvironmentalReading {
-    const std::string timestamp;
+    private:
+        std::string formatDouble(double value) const {
+            if (std::isnan(value)) {
+                return "null";
+            }
+            char buffer[15];
+            snprintf(buffer, sizeof(buffer), "%.4f", value);
+            return std::string(buffer);
+        }
+
+    public:
     double humidity;
     double temperature;
     double pressure;
     double altitude;
     double dewpoint;
+    const std::string timestamp;
 
     EnvironmentalReading(
-        const std::string& ts = "N/A",
+        const std::string& ts = "NAN",
         double temp = NAN,
         double hum = NAN,
         double pres = NAN,
@@ -77,21 +88,16 @@ struct EnvironmentalReading {
      * @return A JSON string representation of the Reading object.
      */
     const std::string toJson(void) const {
-        /**
-         * The format is: "{\"timestamp\":\"2023-10-01T12:00:00Z\",\"humidity\":50.0,\"temperature\":20.0,\"pressure\":1013.25,\"altitude\":100.0,\"dewpoint\":15.0}"
-         * The maximum length of the string is 150 characters.
-         * We allocate 200 characters to be safe.
-         */
         const int strlen = 200;
         char buffer[strlen] = "";
         snprintf(buffer, strlen,
-                 "{\"timestamp\":\"%s\",\"humidity\":%.4f,\"temperature\":%.4f,\"pressure\":%.4f,\"altitude\":%.4f,\"dewpoint\":%.4f}",
+                 "{\"timestamp\":\"%s\",\"humidity\":%s,\"temperature\":%s,\"pressure\":%s,\"altitude\":%s,\"dewpoint\":%s}",
                  timestamp.c_str(),
-                 humidity,
-                 temperature,
-                 pressure,
-                 altitude,
-                 dewpoint
+                 formatDouble(humidity).c_str(),
+                 formatDouble(temperature).c_str(),
+                 formatDouble(pressure).c_str(),
+                 formatDouble(altitude).c_str(),
+                 formatDouble(dewpoint).c_str()
         );
 
         return std::string(buffer);
@@ -181,3 +187,9 @@ std::vector<EnvironmentalReading> arrayFromJson(const JsonArray jsonarray);
  */
 [[nodiscard]]
 bool writeLog(fs::FS& fs, const EnvironmentalReading& reading);
+
+
+
+
+
+
