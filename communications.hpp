@@ -16,7 +16,7 @@
 
 #define CONN_TIMEOUT 10000
 #define READ_TIMEOUT 5000
-#define RETRY_COUNT 10
+#define RETRY_COUNT 30
 #define CLRF "\r\n"
 
 

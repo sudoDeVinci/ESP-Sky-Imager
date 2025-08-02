@@ -10,7 +10,7 @@
 #include <string>
 #include <time.h>
 
-#define DEUBG 1
+#define DEBUG 1
 
 #ifdef DEBUG
     #define debug(...) Serial.print(__VA_ARGS__)

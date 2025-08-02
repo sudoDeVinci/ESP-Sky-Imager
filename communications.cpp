@@ -35,7 +35,7 @@ bool WifiSpec::connect(
     }
 
     status.WIFI = true;
-    debugf("Connected to WiFi. MAC: %s, IP: %s\n",
+    debugf("Connected to WiFi. \nMAC: %s, \nIP: %s\n",
            WiFi.macAddress().c_str(),
            WiFi.localIP().toString().c_str()
     );
@@ -76,8 +76,8 @@ bool WifiSpec::wifiConnectionSetup(fs::FS& fs, SensorContainer::Status& status) 
     for (int i = 0; i < netcount; i++) {
         std::string ssid = std::string(WiFi.SSID(i).c_str());
         for (JsonVariant netJson : networks) {
-            std::string netssid = netJson["SSID"];
-            std::string netpwd = netJson["PASS"];
+            std::string netssid = netJson["ssid"];
+            std::string netpwd = netJson["pass"];
             if (ssid == netssid) {
                 debugf("Connecting to WiFi network %s", netssid.c_str());
                 if (connect(netssid, netpwd, status, RETRY_COUNT)) {
