@@ -10,6 +10,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Compile sketch
         uses: arduino/compile-sketches@v1
@@ -21,5 +23,4 @@ jobs:
             - name: esp32:esp32
               source-url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
           libraries: |
-            - name: Adafruit NeoPixel
             - name: ArduinoJson
