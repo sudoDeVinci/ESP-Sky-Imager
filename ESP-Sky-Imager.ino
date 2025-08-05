@@ -20,16 +20,12 @@ void setup() {
 
     // we should be connected to WiFi now
     intfce.setClock();
-    const std::string host = "http://192.168.0.33:5000";
-    const std::string cert = "NAN";
-    const std::string apikey = "NAN";
-
-    ServerInfo server = ServerInfo(host, cert, apikey);
+    ServerInfo server = ServerInfo::fromFile(fs);
 
     intfce.getInternalTime(20);
     server.websiteReachable();
-    server.sendStatuses(intfce, sense.status, intfce.timeinfo);
-    server.sendReading(intfce, reading, intfce.timeinfo);
+    server.sendStatuses(intfce, sense.status);
+    server.sendReading(intfce, reading);
     server.getQnh(intfce);
     server.getFirmwareVersion(intfce);
 }

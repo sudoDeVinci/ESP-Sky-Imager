@@ -156,9 +156,10 @@ void WifiSpec::setClock(void) {
  */
 std::string WifiSpec::sendJson(
     const std::string& url,
-    const std::string& jsonData,
-    const std::string& timestamp
-) const {
+    const std::string& jsonData
+) {
+
+    getInternalTime(5);
 
     HTTPClient webclient;
     webclient.begin(url.c_str());
@@ -170,7 +171,8 @@ std::string WifiSpec::sendJson(
     webclient.addHeader(ServerInfo::Header::CONTENT_TYPE, ServerInfo::MIMEType::APP_JSON);
     webclient.addHeader(ServerInfo::Header::CONTENT_LENGTH, contentlength);
     webclient.addHeader(ServerInfo::Header::MACADDRESS, WiFi.macAddress().c_str());
-    webclient.addHeader(ServerInfo::Header::TIMESTAMP, timestamp.c_str());
+    webclient.addHeader(ServerInfo::Header::TIMESTAMP, formatTime(timeinfo).c_str());
+    webclient.addHeader(ServerInfo::Header::FIRMWARE_VERSION, VERSION);
 
     int httpCode = webclient.POST(jsonData.c_str());
     if (httpCode < 0) {
@@ -189,15 +191,17 @@ std::string WifiSpec::sendJson(
 }
 
 
-std::string WifiSpec::getJson(
-    const std::string& url
-) const {
+std::string WifiSpec::getJson(const std::string& url) {
+
+    getInternalTime(5);
+
     HTTPClient webclient;
     webclient.begin(url.c_str());
-
     webclient.setConnectTimeout(CONN_TIMEOUT);
     webclient.addHeader(ServerInfo::Header::CONTENT_TYPE, ServerInfo::MIMEType::APP_JSON);
     webclient.addHeader(ServerInfo::Header::MACADDRESS, WiFi.macAddress().c_str());
+    webclient.addHeader(ServerInfo::Header::TIMESTAMP, formatTime(timeinfo).c_str());
+    webclient.addHeader(ServerInfo::Header::FIRMWARE_VERSION, VERSION);
 
     int httpCode = webclient.GET();
     if (httpCode < 0) {
@@ -255,8 +259,7 @@ bool ServerInfo::websiteReachable(void) const {
  */
 void ServerInfo::sendStatuses(
     WifiSpec& netIntf,
-    const SensorContainer::Status& status,
-    const tm& timeinfo 
+    const SensorContainer::Status& status
 ) const {
 
     size_t length = this->host.length() + strlen(Route::STATUS) + 10;
@@ -265,8 +268,7 @@ void ServerInfo::sendStatuses(
 
     debugf("Sending Statuses to %s\n", url);
     std::string jsonData = status.toJson();
-    std::string timestamp = formatTime(timeinfo);
-    std::string response = netIntf.sendJson(url, jsonData, timestamp);
+    std::string response = netIntf.sendJson(url, jsonData);
     debugf("Response: %s\n", response.c_str());
 }
 
@@ -278,8 +280,7 @@ void ServerInfo::sendStatuses(
  */
 void ServerInfo::sendReading(
     WifiSpec& netIntf,
-    const EnvironmentalReading& envdata,
-    const tm& timeinfo
+    const EnvironmentalReading& envdata
 ) const {
 
     size_t length = this->host.length() + strlen(Route::READING) + 10;
@@ -287,9 +288,8 @@ void ServerInfo::sendReading(
     snprintf(url, length, "%s%s", this->host.c_str(), Route::READING);
 
     debugf("Sending Reading to %s\n", url);
-    std::string timestamp = formatTime(timeinfo);
     std::string jsonData = envdata.toJson();
-    std::string response = netIntf.sendJson(url, jsonData, timestamp);
+    std::string response = netIntf.sendJson(url, jsonData);
     debugf("Response: %s\n", response.c_str());
 }
 
@@ -319,9 +319,9 @@ std::string ServerInfo::getQnh(
  * @return The firmware version as a string.
  */
 std::string ServerInfo::getFirmwareVersion(WifiSpec& netInf) const {
-    size_t length = this->host.length() + strlen(Route::VERSION) + 10;
+    size_t length = this->host.length() + strlen(Route::VERSIONING) + 10;
     char url[length];
-    snprintf(url, length, "%s%s", this->host.c_str(), Route::VERSION);
+    snprintf(url, length, "%s%s", this->host.c_str(), Route::VERSIONING);
 
     debugf("Getting firmware version from %s\n", url);
     std::string response = netInf.getJson(url);

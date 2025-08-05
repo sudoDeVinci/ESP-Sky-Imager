@@ -59,7 +59,6 @@ struct WifiSpec {
      * This function will keep trying to get the time until it succeeds or the timer runs out.
      * It will print a dot every 150-250 milliseconds to indicate progress.
      * If the time is not set after the timer runs out, it will print an error message.
-     * @param timeinfo: tm struct to hold the time information.
      * @param timer: The maximum time to wait for the time to be set, in seconds.
      * @return true if the time was successfully set, false otherwise.
      */
@@ -98,29 +97,21 @@ struct WifiSpec {
      */
     std::string sendJson(
         const std::string& url,
-        const std::string& jsonData,
-        const std::string& timestamp
-    ) const;
+        const std::string& jsonData
+    );
 
 
-    std::string getJson(
-        const std::string& url
-    ) const;
+    std::string getJson(const std::string& url);
 };
 
 struct ServerInfo {
     const std::string host;
     const std::string certificate;
-    const std::string apikey;
 
     ServerInfo(
         const std::string& host = "",
-        const std::string& certificate = "",
-        const std::string& apikey = ""
-    ) : certificate(certificate), 
-        apikey(apikey),
-        host(host) {
-    }
+        const std::string& certificate = ""
+    ) : certificate(certificate), host(host) {}
 
     /**
      * MIME types for the different types of packets.
@@ -143,7 +134,7 @@ struct ServerInfo {
         static constexpr const char* READING = "/api/reading";
         static constexpr const char* STATUS = "/api/status";
         static constexpr const char* UPDATE = "/api/update";
-        static constexpr const char* VERSION = "/api/version";
+        static constexpr const char* VERSIONING = "/api/version";
         static constexpr const char* QNH = "/api/qnh";
     };
 
@@ -152,38 +143,34 @@ struct ServerInfo {
         static constexpr const char* CONTENT_LENGTH = "Content-Length";
         static constexpr const char* MACADDRESS = "X-MAC-Address";
         static constexpr const char* TIMESTAMP = "X-Timestamp";
+        static constexpr const char* FIRMWARE_VERSION = "X-Firmware-Version";
+        static constexpr const char* USER_AGENT = "User-Agent";
     };
 
     /**
      * Check if the server is reachable.
-     * @param webclient The HTTP client to use for the request.
-     * @param netIntf The network interface settings to use for the request.
      * @return true if the server is reachable, false otherwise.
      */
     bool websiteReachable(void) const;
 
     /**
      * Send the status of the sensors to the server.
-     * @param webclient The HTTP client to use for the request.
      * @param netIntf The network interface settings to use for the request.
      * @param status The status of the sensors to send.
      */
     void sendStatuses(
         WifiSpec& netIntf,
-        const SensorContainer::Status& status,
-        const tm& timeinfo 
+        const SensorContainer::Status& status
     ) const;
 
     /**
      * Send a reading to the server.
      * @param netIntf The network interface settings to use for the request.
      * @param jsonData The JSON data to send.
-     * @param timeinfo The time information to include in the request.
      */
     void sendReading(
         WifiSpec& netIntf,
-        const EnvironmentalReading& envdata,
-        const tm& timeinfo
+        const EnvironmentalReading& envdata
     ) const;
 
     /**
@@ -199,6 +186,26 @@ struct ServerInfo {
      * @return The firmware version as a string.
      */
     std::string getFirmwareVersion(WifiSpec& netInf) const;
+
+    static ServerInfo fromFile(fs::FS&fs, const std::string& filePath = SERVER_FILE) {
+        const std::string serverInfo = readFile(fs, filePath);
+        if (serverInfo.empty()) {
+            debugln("No server information found. Please set up the server.");
+            return ServerInfo();
+        }
+
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, serverInfo);
+        if (error) {
+            debugf("Failed to parse server file: %s\n", error.c_str());
+            return ServerInfo();
+        }
+
+        return ServerInfo(
+            doc["host"].as<std::string>(),
+            doc["certificate"].as<std::string>()
+        );
+    }
 };
 
 

@@ -11,6 +11,7 @@
 #include <time.h>
 
 #define DEBUG 1
+#define VERSION "1.0.0"
 
 #ifdef DEBUG
     #define debug(...) Serial.print(__VA_ARGS__)
