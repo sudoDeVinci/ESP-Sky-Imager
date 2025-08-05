@@ -1,8 +1,8 @@
 #pragma once
 
 #include "io.hpp"
-#include "drivers/SHT31D.hpp"
-#include "drivers/BMP3xx.hpp"
+#include "ESP-Environment-Drivers/SHT31D.hpp"
+#include "ESP-Environment-Drivers/BMP3xx.hpp"
 #include "camera_pins.h"
 #include <string>
 #include <array>
