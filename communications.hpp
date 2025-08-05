@@ -19,7 +19,11 @@
 #define RETRY_COUNT 30
 #define CLRF "\r\n"
 
-
+/**
+ * This struct holds the SSID, password, connection status, and time information.
+ * This used to be "NetworkInterface" but was renamed to WifiSpec to avoid naming conflicts with the builtin NetworkInterface class.
+ * @brief The information surrounding our WiFi connection and internal clock.
+ */
 struct WifiSpec {
     bool isConnected = false;
     std::string ssid;
@@ -49,6 +53,7 @@ struct WifiSpec {
     /**
      * Set the internal clock of the ESP32 to the current time using NTP AND fill the timeinfo struct with that time.
      * Big thanks to Andreas Spiess.
+     * @brief Set the internal clock of the ESP32 to the current time using NTP.
      * @param timeinfo: tm struct to hold the time information.
      */
     void setClock(void);
@@ -59,6 +64,7 @@ struct WifiSpec {
      * This function will keep trying to get the time until it succeeds or the timer runs out.
      * It will print a dot every 150-250 milliseconds to indicate progress.
      * If the time is not set after the timer runs out, it will print an error message.
+     * @brief Get the current time from the onboard clock - fill the timeinfo struct.
      * @param timer: The maximum time to wait for the time to be set, in seconds.
      * @return true if the time was successfully set, false otherwise.
      */
@@ -66,10 +72,8 @@ struct WifiSpec {
 
 
     /**
-     * Connect to the WiFi network.
-     * This function attempts to connect to the specified WiFi network using the provided SSID and password.
-     * It will retry the connection a specified number of times before giving up.
-     * 
+     * Attempt to connect to the specified WiFi network using the provided SSID and password. Retry the connection a specified number of times before giving up.
+     * @brief Connect to a WiFi network using the provided SSID and password.
      * @param ssid The SSID of the WiFi network to connect to.
      * @param password The password for the WiFi network.
      * @param status The status object to update with the connection status.
@@ -85,15 +89,22 @@ struct WifiSpec {
     );
 
 
+    /**
+     * @brief Connect to a WiFi network using the provided SSID and password.
+     * @details Try connecting to any one of the WiFi APS listed in the networks.json file - Update the status object with the connection status.
+     * @param fs The file system to read the WiFi networks from.
+     * @param status The status object to update with the connection status.
+     * @return true if the connection was successful, false otherwise.
+     */
     bool wifiConnectionSetup(fs::FS& fs, SensorContainer::Status& status);   
 
 
     /**
-     * Send a JSON string to the server.
-     * @param webclient The HTTP client to use for the request.
+     * Send the provided JSON data to the specified URL. Headers are applied automatically, and time is updated before sending the request.
+     * @brief Send a JSON string to the server.
      * @param url The URL to send the JSON data to.
      * @param jsonData The JSON data to send.
-     * @return The response from the server as a string.
+     * @return The response from the server as a JSON.
      */
     std::string sendJson(
         const std::string& url,
@@ -101,9 +112,21 @@ struct WifiSpec {
     );
 
 
+    /**
+     * Send a GET request to the specified URL and return the response as a JSON string. Headers are applied automatically, and the time is updated before sending the request.
+     * @brief Get A JSON string from the server.
+     * @param url The URL to get the JSON data from.
+     * @return The JSON data as a string.
+     */
     std::string getJson(const std::string& url);
 };
 
+
+/**
+ * This struct holds the server information, including the host and certificate.
+ * It provides methods to interact with the server, such as sending statuses and readings, and retrieving QNH and firmware version.
+ * @brief The information surrounding our server connection.
+ */
 struct ServerInfo {
     const std::string host;
     const std::string certificate;
@@ -148,7 +171,7 @@ struct ServerInfo {
     };
 
     /**
-     * Check if the server is reachable.
+     * @brief Check if the server is reachable.
      * @return true if the server is reachable, false otherwise.
      */
     bool websiteReachable(void) const;
@@ -187,6 +210,12 @@ struct ServerInfo {
      */
     std::string getFirmwareVersion(WifiSpec& netInf) const;
 
+    /**
+     * @brief Load the server information from a JSON.
+     * @param fs The file system to read the server information from.
+     * @param filePath The path to the server information file. Defaults to SERVER_FILE.
+     * @return A ServerInfo object containing the server information.
+     */
     static ServerInfo fromFile(fs::FS&fs, const std::string& filePath = SERVER_FILE) {
         const std::string serverInfo = readFile(fs, filePath);
         if (serverInfo.empty()) {
