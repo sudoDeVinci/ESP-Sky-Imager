@@ -121,6 +121,7 @@ struct SensorContainer {
             bool SHT = false;
             bool BMP = false;
             bool WIFI = false;
+            bool CAM = false;
 
             /**
              * Convert the Status object to a string representation.
@@ -135,11 +136,13 @@ struct SensorContainer {
                  */
                 const int strlen = 50;
                 char buffer[strlen] = "";
-                snprintf(buffer, strlen,
-                         "{\"SHT\":%s,\"BMP\":%s,\"WIFI\":%s}",
-                         SHT ? "true" : "false",
-                         BMP ? "true" : "false",
-                         WIFI ? "true" : "false"
+                snprintf(
+                    buffer, strlen,
+                    "{\"SHT\":%s,\"BMP\":%s,\"WIFI\":%s,\"CAM\":%s}",
+                    SHT ? "true" : "false",
+                    BMP ? "true" : "false",
+                    WIFI ? "true" : "false",
+                    CAM ? "true" : "false"
                 );
 
                 return std::string(buffer);

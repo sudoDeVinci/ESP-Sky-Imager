@@ -91,14 +91,11 @@ bool WifiSpec::wifiConnectionSetup(fs::FS& fs, SensorContainer::Status& status) 
     return false;
 }
 
-
-
 /**
  * Get the current time from the onboard clock.
  * This function will keep trying to get the time until it succeeds or the timer runs out.
  * It will print a dot every 150-250 milliseconds to indicate progress.
  * If the time is not set after the timer runs out, it will print an error message.
- * @param timeinfo: tm struct to hold the time information.
  * @param timer: The maximum time to wait for the time to be set, in seconds.
  * @return true if the time was successfully set, false otherwise.
  */
@@ -124,11 +121,9 @@ bool WifiSpec::getInternalTime(int timer) {
     return true;
 }
 
-
 /**
  * Set the internal clock of the ESP32 to the current time using NTP AND fill the timeinfo struct with that time.
  * Big thanks to Andreas Spiess.
- * @param timeinfo: tm struct to hold the time information.
  */
 void WifiSpec::setClock(void) {
     configTime(0, 0, "pool.ntp.org");
@@ -149,10 +144,8 @@ void WifiSpec::setClock(void) {
 /**
  * Some a JSON string to the server as a POST request.
  * @param url The URL to send the JSON data to.
- * @param webclient The HTTP client to use for the request.
  * @param jsonData The JSON data to send.
- * @param timestamp The timestamp to include in the request headers.
- * @return The response from the server as a string.
+ * @return The response from the server as a json-encoded string.
  */
 std::string WifiSpec::sendJson(
     const std::string& url,
@@ -190,7 +183,11 @@ std::string WifiSpec::sendJson(
     return response;
 }
 
-
+/**
+ * Send a GET request to the given url expecting a JSON response.
+ * @param url the url to send the request to.
+ * @return the response from the server as a json-encoded string.
+ */
 std::string WifiSpec::getJson(const std::string& url) {
 
     getInternalTime(5);
@@ -219,11 +216,8 @@ std::string WifiSpec::getJson(const std::string& url) {
     return response;
 }
 
-
- /**
+/**
  * Check if the server is reachable.
- * @param webclient The HTTP client to use for the request.
- * @param netIntf The network interface settings to use for the request.
  * @return true if the server is reachable, false otherwise.
  */
 [[nodiscard]]
@@ -250,12 +244,10 @@ bool ServerInfo::websiteReachable(void) const {
     return false;
 }
 
-
 /**
  * Send the status of the sensors to the server.
- * @param webclient The HTTP client to use for the request.
- * @param netIntf The network interface settings to use for the request.
- * @param status The status of the sensors to send.
+ * @param netIntf The network interface to use for the request.
+ * @param status The sensor status struct to send.
  */
 void ServerInfo::sendStatuses(
     WifiSpec& netIntf,
@@ -274,15 +266,13 @@ void ServerInfo::sendStatuses(
 
 /**
  * Send a reading to the server.
- * @param netIntf The network interface settings to use for the request.
- * @param jsonData The JSON data to send.
- * @param timeinfo The time information to include in the request.
+ * @param netIntf The network interface to use for the request.
+ * @param envdata The environmental data to send.
  */
 void ServerInfo::sendReading(
     WifiSpec& netIntf,
     const EnvironmentalReading& envdata
 ) const {
-
     size_t length = this->host.length() + strlen(Route::READING) + 10;
     char url[length];
     snprintf(url, length, "%s%s", this->host.c_str(), Route::READING);
@@ -296,11 +286,9 @@ void ServerInfo::sendReading(
 /**
  * Get the qnh from the server as JSON.
  * @param netInf The network interface settings to use for the request.
- * @return The qnh as a string.
+ * @return The json-encoded string containing the qnh.
  */
-std::string ServerInfo::getQnh(
-    WifiSpec& netInf
-) const {
+std::string ServerInfo::getQnh(WifiSpec& netInf) const {
     
     size_t length = this->host.length() + strlen(Route::QNH) + 10;
     char url[length];
@@ -312,11 +300,10 @@ std::string ServerInfo::getQnh(
     return response;
 }
 
-
 /**
  *Get the firmware version from the server as JSON.
- * @param netInf The network interface settings to use for the request.
- * @return The firmware version as a string.
+ * @param netInf The network interface to use for the request.
+ * @return A json-encoded string containing the firmware version.
  */
 std::string ServerInfo::getFirmwareVersion(WifiSpec& netInf) const {
     size_t length = this->host.length() + strlen(Route::VERSIONING) + 10;

@@ -33,10 +33,15 @@
 #define SERVER_FILE "//server.json"
 #define NETWORKS_FILE "//networks.json"
 
+std::string formatTime(const tm& now);
+
 
 /**
  * @brief A struct to represent a timestamped cache update.
  * This class is used to store data and its associated timestamp for cache updates.
+ * @param field The field name within the cache to update.
+ * @param data Whatever data we want to add into the cache.
+ * @param timestamp Timestamp string for the update
  */
 template <typename T>
 struct CacheUpdate {
@@ -53,9 +58,6 @@ struct CacheUpdate {
         data(data),
         timestamp(timestamp) {}
 };
-
-
-std::string formatTime(const tm& now);
 
 
 /**
@@ -100,20 +102,21 @@ std::string readFile(fs::FS& fs, const std::string& path);
  * @brief Update the cache with a new data entry.
  * @param fs The file system to use for the cache.
  * @param update The cache update containing data and timestamp.
+ * @return true if the update is successful, otherwise false.
  */
 template <typename T>
-inline void updateCache(fs::FS& fs, const CacheUpdate<T>& update) {
+inline bool updateCache(fs::FS& fs, const CacheUpdate<T>& update) {
     std::string cacheContent = readFile(fs, CACHE_FILE);
     if (cacheContent.empty()) {
         debugln("Cache file is empty or could not be read.");
-        return;
+        return false;
     }
 
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, cacheContent);
     if (error) {
         debugf("Failed to parse cache file: %s\n", error.c_str());
-        return;
+        return false;
     }
 
     if (!doc.containsKey(update.field)) {
@@ -127,16 +130,17 @@ inline void updateCache(fs::FS& fs, const CacheUpdate<T>& update) {
     File file = fs.open(CACHE_FILE, FILE_WRITE);
     if (!file) {
         debugln("Failed to open cache file for writing.");
-        return;
+        return false;
     }
 
     if (serializeJson(doc, file) == 0) {
         debugln("Failed to write updated cache to file.");
-    } else {
-        debugln("Cache updated successfully.");
+        return false;
     }
+
     file.close();
     debugf("Cache file %s updated with field %s.\n", CACHE_FILE, update.field.c_str());
+    return true;
 }
 
 

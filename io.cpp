@@ -94,7 +94,6 @@ void initCachefile(fs::FS &fs) {
     file.close();
 }
 
-
 /**
  * @brief   Read the contents of a file from the specified file system.
  * @warning This dynamically allocates memory for the file contents - for our use case, this is fine though.
@@ -108,12 +107,12 @@ std::string readFile(fs::FS& fs, const std::string& path) {
     File file = fs.open(path.c_str(), FILE_READ);
     if(!file || file.isDirectory()){
         debugf("Failed to open file %s for reading\n", path.c_str());
-        return "";  // Return empty string on error
+        return "";
     }
 
     size_t fileSize = file.size();
     std::string content;
-    content.reserve(fileSize);  // Now reserve() makes sense!
+    content.reserve(fileSize);
     
     while(file.available()) {
         content += (char)file.read();
@@ -123,15 +122,6 @@ std::string readFile(fs::FS& fs, const std::string& path) {
     debugf("Read %d bytes from file %s\n", content.size(), path.c_str());
     return content;
 }
-
-
-
-
-
-
-
-
-
 
 
 

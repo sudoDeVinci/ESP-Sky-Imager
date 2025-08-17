@@ -104,7 +104,7 @@ struct WifiSpec {
      * @brief Send a JSON string to the server.
      * @param url The URL to send the JSON data to.
      * @param jsonData The JSON data to send.
-     * @return The response from the server as a JSON.
+     * @return The response from the server as a JSON-encoded string.
      */
     std::string sendJson(
         const std::string& url,
@@ -161,6 +161,9 @@ struct ServerInfo {
         static constexpr const char* QNH = "/api/qnh";
     };
 
+    /**
+     * Headers to set on Server requests.
+     */
     struct Header {
         static constexpr const char* CONTENT_TYPE = "Content-Type";
         static constexpr const char* CONTENT_LENGTH = "Content-Length";
